@@ -41,3 +41,15 @@ emcc -v
 
 wasm 빌드(window powershell)
 emcc main.cpp monocypher.c monocypher-ed25519.c -O3 -DSEC_KEY=12345678 -s EXPORTED_FUNCTIONS=[_main,_start_simulation,_malloc,_free] -s EXPORTED_RUNTIME_METHODS=[ccall,cwrap] -s ALLOW_MEMORY_GROWTH=1 -o ../build/engine.js
+
+
+emcc main.cpp monocypher.c monocypher-ed25519.c `
+  -O3 `
+  -flto `
+  -DSEC_KEY=12345678 `
+  -s EXPORTED_FUNCTIONS=[_main,_start_simulation,_malloc,_free] `
+  -s EXPORTED_RUNTIME_METHODS=[ccall,cwrap] `
+  -s ALLOW_MEMORY_GROWTH=1 `
+  --closure 1 `
+  --strip-all `
+  -o ../../fe/public/wasm/engine.js
