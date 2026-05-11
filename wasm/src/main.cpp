@@ -2,17 +2,23 @@
 #include <vector>
 #include <stdint.h>
 #include <emscripten.h>
+#include <string>
 extern "C" {
     #include "monocypher.h"   // monocypher include
     #include "monocypher-ed25519.h"
 }
 #include "lotto_data.h"  // 파이썬이 생성한 데이터 헤더
 
-// 컴파일 타임에 GitHub Action에서 주입 (-DSEC_KEY=...)
-#ifndef SEC_KEY
-#define SEC_KEY 0x0 // 기본값
-#endif
+// 주입된 SEC_KEY를 문자열로 변환하여 상수에 할당
+#define STR(x) #x
+#define XSTR(x) STR(x)
 
+#ifdef SEC_KEY
+    const std::string KEY = XSTR(SEC_KEY);
+#else
+    // 만약 주입이 안 되었을 때를 대비한 기본값
+    const std::string KEY = "default_key"; 
+#endif
 
 // --- 데이터 구조체 (앞의 파이프라인에서 정의한 것) ---
 #pragma pack(push, 1)
@@ -34,13 +40,13 @@ struct MatchResult {
 
 class LottoEngine {
 private:
-    uint32_t runtime_poison = 0;
+    std::string runtime_poison = "a";
     bool verified = false;
 
 public:
     inline uint16_t calculate_rank(uint8_t match, bool bonus) {
         // SEC_KEY가 일치하지 않으면 모든 등수를 0(낙첨)으로 처리
-        if (runtime_poison != SEC_KEY) return 0;
+        if (runtime_poison != KEY) return 0;
         if (match == 6) return 1;
         if (match == 5 && bonus) return 2;
         if (match == 5) return 3;
@@ -63,10 +69,10 @@ public:
             sizeof(LOTTO_RAW_DATA)
         );
         if (result == 0) {
-            runtime_poison = SEC_KEY;
+            runtime_poison = KEY;
             verified = true;
         } else {
-            runtime_poison = 0; 
+            runtime_poison = "a"; 
             verified = false;
         }
         return verified;

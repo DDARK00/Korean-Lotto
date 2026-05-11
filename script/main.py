@@ -1,6 +1,9 @@
 # main.py
+import os
 from collector import update_lotto_data
 from processor import generate_wasm_header
+from builder import run_wasm_build
+
 
 def main():
     print('--- 데이터 파이프라인 시작 ---')
@@ -27,8 +30,16 @@ def main():
         return # 실패 시 여기서 중단
 
     # 3. Emscripten 빌드 등 CI/CD 작업
-    print('All python processes completed successfully!')
-    print('\nStep 3: Data preparation complete. Ready for Emscripten build.')      
+    print('\nStep 3: Data preparation complete. Ready for Emscripten build.')  
+
+    # 2. WASM 빌드 실행
+    is_build = run_wasm_build()
+    if is_build:
+        print('-> Step 3: 빌드 및 .js .wasm 생성 성공.')
+        print('All python processes completed successfully!')
+    else:
+        print('-> Step 3: WASM 빌드 실패! Check logs!')
+        return
 
 if __name__ == '__main__':
     main()
