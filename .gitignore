@@ -1,37 +1,3 @@
-# --- Project Specific Custom Rules ---
-
-# [WASM/C++]
-# 빌드 결과물은 배포 자동화(Actions)가 담당하므로 로컬 결과물은 제외
-/wasm/build/
-/wasm/src/*.o
-/wasm/src/*.wasm
-/wasm/src/*.js
-
-# [Generated Data]
-# Python이 생성하는 C++ 헤더 파일 (Actions에서 생성되므로 제외 권장)
-# 로컬 빌드 편의를 위해 기록하고 싶다면 주석
-# /wasm/src/lotto_data.h
-
-# [Emscripten SDK]
-/emsdk/
-
-# [Frontend]
-# Vite 빌드 결과물 및 Wasm 복사본
-/fe/dist/
-/fe/public/wasm/engine.js
-/fe/public/wasm/engine.wasm
-
-# [Security]
-# 시크릿/환경변수 파일
-.env
-.env.local
-/config/secrets.json
-
-# [Test]
-# 로컬 테스트 및 검증용 폴더
-/test_tmp/
-# --- End ---
-
 # Created by https://www.toptal.com/developers/gitignore/api/react,python,node,c++,visualstudio,visualstudiocode,windows,macos
 # Edit at https://www.toptal.com/developers/gitignore?templates=react,python,node,c++,visualstudio,visualstudiocode,windows,macos
 
@@ -854,3 +820,44 @@ FodyWeavers.xsd
 # Additional files built by Visual Studio
 
 # End of https://www.toptal.com/developers/gitignore/api/react,python,node,c++,visualstudio,visualstudiocode,windows,macos
+
+
+
+
+# --- Project Specific Custom Rules ---
+
+# [WASM/C++]
+# 빌드 결과물은 배포 자동화(Actions)가 담당하므로 로컬 결과물은 제외
+/wasm/build/
+/wasm/src/*.o
+/wasm/src/*.wasm
+/wasm/src/*.js
+
+# [Generated Data]
+# Python이 생성하는 C++ 헤더 파일 (Actions에서 생성되므로 제외 권장)
+# 로컬 빌드 편의를 위해 기록하고 싶다면 주석
+# /wasm/src/lotto_data.h
+
+# [Emscripten SDK]
+/emsdk/
+
+# [Frontend]
+# Vite 빌드 결과물 및 Wasm 복사본
+/fe/dist/
+/fe/public/wasm/engine.js
+/fe/public/wasm/engine.wasm
+
+# [Fe except]
+# Fe에서 쓰는 lib 제외
+!/fe/src/lib/
+
+# [Security]
+# 시크릿/환경변수 파일
+.env
+.env.local
+/config/secrets.json
+
+# [Test]
+# 로컬 테스트 및 검증용 폴더
+/test_tmp/
+# --- End ---

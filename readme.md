@@ -1,55 +1,130 @@
-[Python]
-1. API fetch
-2. bitset build (final state)
-3. serialize bitset → bytes
-4. sign(bytes)
+🏗️ Lotto Wasm Project Blueprint
+본 프로젝트는 GitHub Actions를 통한 데이터 자동 수집 파이프라인과 WebAssembly(Wasm) 기반의 고속 연산 엔진을 결합한 차세대 로또 분석 플랫폼입니다.
 
-↓ 배포
+📁 Project Directory Structure
+```Plaintext
+root/
+├── .github/
+│   └── workflows/
+│       └── update-lotto.yml      # GitHub Actions 워크플로우 정의
+├── config/
+│   └── api_info.json             # API 엔드포인트 및 설정 상수
+├── data/
+│   └── history.json              # [Source] 원본 로또 당첨 데이터 (JSON)
+├── script/                       # [Python] 데이터 가공 및 보안 파이프라인
+│   ├── main.py                   # 공정 통합 관리 및 실행 (Manager)
+│   ├── collector.py              # API 수집 및 JSON 증분 업데이트
+│   ├── processor.py              # 비트셋 변환 및 C++ 헤더 생성
+│   └── signer.py                 # Secrets 기반 Ed25519 서명 로직
+├── wasm/                         # [C++] 고속 연산 엔진
+│   ├── src/
+│   │   ├── main.cpp              # 로또 비교 및 당첨 판별 로직
+│   │   ├── monocypher.c          # 추가: 소스 파일 관리
+│   │   ├── monocypher.h
+│   │   └── lotto_data.h          # [Generated] 서명된 비트셋 데이터 헤더
+│   └── build/                    # 로컬 테스트용 빌드 폴더 (유지)접점 파일
+│       ├── engine.js             # 컴파일된 .wasm 및 .js 
+│       └── engine.wasm
+└── fe/                           # [Frontend] 사용자 인터페이스
+    └── react etc...
+```
 
-[WASM]
-5. receive (data + signature)
-6. verify(bytes, signature)
-7. only if valid → 계산
+🛠️ Work Pipeline & Logic Flow
+1. Data Collection Phase (Python)
+  Incremental Update: 기존 history.json의 마지막 회차를 인식하여 누락된 최신 회차만 수집합니다.
+
+- Politeness Strategy: 초기 대량 수집(1~1,200회)은 로컬에서 수행 후 커밋하며, 자동화 공정에서는 time.sleep을 적용하여 서버 부하를 최소화합니다.
+
+2. Processing & Security Phase (Python)
+Bitset Compression: 6개의 번호를 uint64_t 정수의 비트 필드에 매핑하여 메모리 점유율을 줄이고 연산 속도를 극대화합니다.
+
+- Cryptographic Signing: GitHub Secrets의 Private Key를 사용하여 비트셋 바이너리의 해시값을 Ed25519 방식으로 서명합니다.
+
+- Code Generation: Wasm 컴파일 단계에서 즉시 참조 가능한 정적 배열 형태의 lotto_data.h를 자동 생성합니다.
+
+3. Wasm Engine Build (C++)
+Integrity Check: 엔진 구동 시 내장된 Public Key로 데이터의 서명을 검증하여 위변조를 차단합니다.
+
+  - High-Speed Matching: Bitwise AND 및 popcount 알고리즘을 사용하여 수천 회차의 대조 작업을 밀리초(ms) 단위로 처리합니다.
+
+- Emscripten Build: 최적화된 C++ 로직을 웹 브라우저 호환 바이너리로 빌드합니다.
+
+4. Integration & UI (JS/HTML)
+Wasm Bridge: JS와 Wasm 간의 메모리 공유 및 함수 호출 인터페이스를 구성합니다.
+
+- Data Visualization: 가공된 JSON을 활용해 회차별 통계 및 상세 정보를 미려하게 시각화합니다.
+
+5. Automation (GitHub Actions)
+Scheduled Trigger: 매주 토요일 당첨 발표 직후 정기적으로 실행됩니다.
+
+- Auto-Commit: 업데이트된 데이터와 빌드된 바이너리를 리포지토리에 자동 푸시하여 최신 상태를 유지합니다.
+
+🔐 Security Policy
+Secrets Management: 서명용 개인키는 코드에 노출하지 않으며 오직 GitHub Secrets 환경 변수로만 주입받습니다.
+
+- Data Integrity: 데이터 위변조가 감지될 경우 Wasm 엔진은 연산을 거부하거나 무효화된 시그니처를 반환하여 신뢰성을 보장합니다.
+
+🚀 Step-by-Step Task Checklist  
+
+[x] Phase 1: 로컬에서 1회~현재 회차까지 history.json 초기 수집 및 저장소 구축
+
+[x] Phase 2: collector.py (JSON 갱신) 및 processor.py (비트셋 변환) 모듈 구현
+
+[x] Phase 3: signer.py (Ed25519 서명) 구현 및 main.py 통합 공정 조립
+
+[x] Phase 4: C++ Wasm 연산 로직 개발 및 서명 검증 엔진 구현
+
+[ ] Phase 5: GitHub Actions YAML 작성 및 Secrets 환경 변수 설정
+
+[ ] Phase 6: Frontend UI 개발 및 Wasm JS 브릿지 연결
+
+[ ] Phase 7: 전체 파이프라인 통합 테스트 및 데이터 정합성 검증
 
 
 
-pip install -r requirements.txt
-
-''' python
-python from nacl.signing import SigningKey key="SigningKey.generate()" print("Private (Hex):", key.encode().hex())
-'''
-
-
-# Get the emsdk repo
-git clone https://github.com/emscripten-core/emsdk.git
-
-cd emsdk
-
-./emsdk install 1.38.45
-
-
-./emsdk install latest
-설치는 좀 오래걸려요.
-
-./emsdk activate latest
- 
-source ./emsdk_env.sh
-
-emcc -v
 
 
 
-wasm 빌드(window powershell)
-emcc main.cpp monocypher.c monocypher-ed25519.c -O3 -DSEC_KEY=12345678 -s EXPORTED_FUNCTIONS=[_main,_start_simulation,_malloc,_free] -s EXPORTED_RUNTIME_METHODS=[ccall,cwrap] -s ALLOW_MEMORY_GROWTH=1 -o ../build/engine.js
+🚀 GitHub Actions(YAML) 작성 핵심 체크리스트
+1. 환경 변수 및 시크릿 관리 (Security)
+Secrets 주입: SEC_KEY와 같은 민감한 정보는 반드시 GitHub Repo의 Settings > Secrets and variables > Actions에 등록하고 사용하세요.
 
+env 블록 활용: 파이썬 스크립트가 시스템 환경 변수를 읽을 수 있도록 env: 섹션에서 연결해줘야 합니다.
 
-emcc main.cpp monocypher.c monocypher-ed25519.c `
-  -O3 `
-  -flto `
-  -DSEC_KEY=12345678 `
-  -s EXPORTED_FUNCTIONS=[_main,_start_simulation,_malloc,_free] `
-  -s EXPORTED_RUNTIME_METHODS=[ccall,cwrap] `
-  -s ALLOW_MEMORY_GROWTH=1 `
-  --closure 1 `
-  --strip-all `
-  -o ../../fe/public/wasm/engine.js
+YAML
+- name: Run Pipeline
+  env:
+    SEC_KEY: ${{ secrets.SEC_KEY }} # 시크릿을 환경변수로 매핑
+  run: python script/main.py --build
+2. 데이터 업데이트 기반 조건부 실행 (Efficiency)
+Step ID 활용: 파이썬(main.py)에서 데이터 업데이트 여부를 판단한 뒤, 그 결과를 Actions의 outputs로 내보내면 이후 스텝(빌드, 배포)을 실행할지 말지 결정할 수 있습니다.
+
+if 조건문: if: steps.check_step.outputs.is_updated == 'true'와 같은 조건문을 사용해 불필요한 서버 자원 낭비를 막으세요.
+
+3. Emscripten(emsdk) 세팅
+공식 액션 사용: mymindstorm/setup-emsdk 같은 검증된 액션을 사용하여 가상 머신에 emcc 환경을 구축하세요.
+
+캐싱 고려: 빌드 시간을 단축하려면 actions/cache를 사용하여 emsdk 설치 과정을 캐싱할 수 있습니다. (설정은 조금 까다롭지만 속도는 확실히 빨라집니다.)
+
+4. 아티팩트(Artifacts) 및 배포
+결과물 보존: 빌드된 engine.js와 engine.wasm은 다음 단계(FE 배포)에서 필요하므로 actions/upload-artifact를 사용해 임시 저장해야 할 수도 있습니다.
+
+권한 설정: GitHub Pages로 배포한다면 permissions 섹션에서 contents: write 혹은 pages: write 권한을 명시해야 합니다.
+
+5. 경로 및 실행 권한
+상대 경로 주의: .yml 파일은 프로젝트 루트에서 실행됩니다. 파이썬 스크립트 내부에서 cwd를 사용하여 파일 경로를 제어하고 있는지 확인하세요.
+
+실행 권한: 리눅스 환경(Actions 기본)에서 스크립트 실행 권한 문제가 발생하면 chmod +x 명령어를 추가해야 할 수도 있습니다.
+
+🛠️ 추천하는 YAML 스텝 흐름 (Summary)
+Checkout: 코드 내려받기.
+
+Setup Python: 파이썬 환경 구축 및 의존성(python-dotenv 등) 설치.
+
+Setup Emscripten: emcc 컴파일러 설치.
+
+Run Pipeline (The Manager): main.py 실행.
+
+데이터 수집 → 헤더 생성 → builder.py를 통한 WASM 빌드.
+
+Deploy: 생성된 fe/dist 및 Wasm 바이너리를 타겟(GitHub Pages 등)에 배포.
