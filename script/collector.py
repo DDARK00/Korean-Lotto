@@ -1,7 +1,7 @@
 from data_manager import get_history, save_history
 import json, requests
 from config import API_PATH
-API_PATH='./config/api.json'
+# API_PATH='./config/api.json'
 
 with open(API_PATH,'r',encoding='utf-8') as api_json:
     api=json.load(api_json).get('endpoint')
