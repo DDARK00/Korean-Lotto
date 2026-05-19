@@ -40,6 +40,7 @@ jobs:
           max_attempts: 3
           retry_wait_seconds: 300
           command: |
+            cd script
             pip install -r requirements.txt
             python main.py
         env:
