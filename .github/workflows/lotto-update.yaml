@@ -44,6 +44,7 @@ jobs:
             cd script
             python main.py
         env:
+          LOTTO_PRIVATE_KEY: ${{ secrets.LOTTO_PRIVATE_KEY }}
           SEC_KEY: ${{ secrets.SEC_KEY }} # 파이썬 내부 builder.py가 쓸 수 있게 주입
 
       # 5. 변경된 파일(JSON, WASM 등)을 Git에 커밋 및 푸시
