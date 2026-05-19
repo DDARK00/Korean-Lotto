@@ -40,8 +40,8 @@ jobs:
           max_attempts: 3
           retry_wait_seconds: 300
           command: |
-            cd script
             pip install -r requirements.txt
+            cd script
             python main.py
         env:
           SEC_KEY: ${{ secrets.SEC_KEY }} # 파이썬 내부 builder.py가 쓸 수 있게 주입
