@@ -56,6 +56,14 @@ def run_wasm_build(sec_key: str = None):
         return True
     except subprocess.CalledProcessError as e:
         print("[-] Build failed! ERROR CODE :", e.returncode)
+        
+        print("DEBUG : WASM BUILD FAIL!!!")
+        # 💡 숨겨진 표준 출력(stdout)과 에러 출력(stderr)을 강제로 로그에 찍기
+        print('\n❌ === [WASM BUILD STDOUT] ===')
+        print(e.stdout if e.stdout else '(Empty)')
+
+        print('\n❌ === [WASM BUILD STDERR] ===')
+        print(e.stderr if e.stderr else '(Empty)')
         return False
 
 
