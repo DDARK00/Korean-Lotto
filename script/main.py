@@ -1,5 +1,5 @@
 # main.py
-import os
+import os, sys
 from collector import update_lotto_data
 from processor import generate_wasm_header
 from builder import run_wasm_build
@@ -16,7 +16,8 @@ def main():
     
     if not is_updated:
         print('새로 추가된 데이터가 없으므로 빌드 파이프라인을 종료합니다.')
-        return # 데이터가 같으면 여기서 Actions 종료
+        #  변경 사항 없으므로 여기서 Actions 종료
+        sys.exit(0) # [정상 종료]
 
     # Step 2: 비트셋 변환 및 데이터 서명 통합
     # 이 함수 안에서 바이너리 생성 + Ed25519 서명이 모두 일어납니다.
@@ -27,7 +28,8 @@ def main():
         print('-> Step 2: WASM header 생성 성공.')
     else:
         print('-> Step 2: WASM header 생성 실패! Check logs!')
-        return # 실패 시 여기서 중단
+        sys.exit(1) # [비정상 종료] GHA에 에러를 알려서 빌드를 중단시키고 Retry 트리거
+        return
 
     # 3. Emscripten 빌드 등 CI/CD 작업
     print('\nStep 3: Data preparation complete. Ready for Emscripten build.')  
@@ -39,7 +41,7 @@ def main():
         print('All python processes completed successfully!')
     else:
         print('-> Step 3: WASM 빌드 실패! Check logs!')
-        return
+        sys.exit(1) # [비정상 종료] 빌드 실패 시 중단
 
 if __name__ == '__main__':
     main()

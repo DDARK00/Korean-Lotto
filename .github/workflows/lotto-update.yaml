@@ -1,0 +1,62 @@
+name: Weekly Lotto Update & WASM Build
+
+# 시나리오 기반
+# pm 9:00, 9:05, 9:10 retry.
+# next day am 9:00
+on:
+  schedule:
+    - cron: '0 12 * * 6' # 매주 토요일 21:00 KST
+    - cron: '0 0 * * 0'  # 일요일 아침 9시
+  workflow_dispatch:
+
+jobs:
+  update-and-build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      # 1. 소스코드 체크아웃
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2. 파이썬 환경 설정
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      # 3. Emscripten (emsdk) 설정
+      - name: Set up Emscripten
+        uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: 'latest'
+
+      # 4. 통합 파이프라인 실행 (실패 시 5분 뒤 자동 재시도)
+      - name: Run Total Pipeline with Retry
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 5
+          max_attempts: 3
+          retry_wait_seconds: 300
+          command: |
+            pip install -r requirements.txt
+            python main.py
+        env:
+          SEC_KEY: ${{ secrets.SEC_KEY }} # 파이썬 내부 builder.py가 쓸 수 있게 주입
+
+      # 5. 변경된 파일(JSON, WASM 등)을 Git에 커밋 및 푸시
+      - name: Commit and Push changes
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          
+          git add data/ fe/public/
+          
+          if ! git diff --staged --quiet; then
+            git commit -m "chore: 고유 데이터 및 WASM 엔진 자동 업데이트 [skip ci]"
+            git push
+          else
+            echo "No changes to commit. Pipeline finished gracefully."
+          fi
+
