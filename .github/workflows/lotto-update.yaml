@@ -4,9 +4,9 @@ name: Weekly Lotto Update & WASM Build
 # pm 9:00, 9:05, 9:10 retry.
 # next day am 9:00
 on:
-  schedule:
-    - cron: '0 12 * * 6' # 매주 토요일 21:00 KST
-    - cron: '0 0 * * 0'  # 일요일 아침 9시
+    # schedule:
+    #   - cron: '0 12 * * 6' # 매주 토요일 21:00 KST
+    #   - cron: '0 0 * * 0'  # 일요일 아침 9시
   workflow_dispatch:
 
 jobs:
@@ -36,9 +36,10 @@ jobs:
       - name: Run Total Pipeline with Retry
         uses: nick-fields/retry@v3
         with:
-          timeout_minutes: 5
-          max_attempts: 3
-          retry_wait_seconds: 300
+          # auto retry
+          # timeout_minutes: 5
+          # max_attempts: 3
+          # retry_wait_seconds: 300
           command: |
             pip install -r requirements.txt
             cd script
