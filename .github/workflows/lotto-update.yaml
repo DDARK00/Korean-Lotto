@@ -48,13 +48,6 @@ jobs:
           LOTTO_PRIVATE_KEY: ${{ secrets.LOTTO_PRIVATE_KEY }}
           SEC_KEY: ${{ secrets.SEC_KEY }} # 파이썬 내부 builder.py가 쓸 수 있게 주입
 
-      # 💡 [디버깅 전용 스텝] 파이썬이 실패하더라도 emcc가 살아있는지 직타로 때려보기
-      - name: 🔥 Emergency Emcc Test
-        if: failure() # 4번 스텝이 실패했을 때만 강제로 실행됨
-        run: |
-          echo "=== GHA에서 직접 emcc 환경 확인 ==="
-          emcc -v
-
       # 5. 변경된 파일(JSON, WASM 등)을 Git에 커밋 및 푸시
       - name: Commit and Push changes
         run: |

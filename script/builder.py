@@ -23,22 +23,20 @@ def run_wasm_build(sec_key: str = None):
     settings = [
         "-O3",
         f'-DSEC_KEY=\"{sec_key}\"',
-        "-s", "EXPORTED_FUNCTIONS=['_main','_start_simulation','_malloc','_free']",
-        "-s", "EXPORTED_RUNTIME_METHODS=['ccall','cwrap']",
-        "-s", "ALLOW_MEMORY_GROWTH=1",
-        "--closure", "1",
+        "-s EXPORTED_FUNCTIONS=\"['_main','_start_simulation','_malloc','_free']\"",
+        "-s EXPORTED_RUNTIME_METHODS=\"['ccall','cwrap']\"",
+        "-s ALLOW_MEMORY_GROWTH=1",
+        "--closure 1",
+        "-s STRIP=1"
     ]
-    if platform.system() != "Windows":
 
-        settings.append("--strip-all")
     # 2. Emscripten 환경 설정과 빌드 명령어 통합
     command = ["emcc"] + source_files + settings + ["-o", str(WASM_OUTPUT_PATH)]
     emcc_cmd_str = " ".join(command)    
 
     if os.getenv("GITHUB_ACTIONS") == "true":
         # GitHub Actions 전용: 바로 emcc 호출
-        final_command = command
-        print("[*] Execution Mode: GitHub Actions")
+        final_command = emcc_cmd_str
     else:
         # 로컬 환경: 환경 설정 스크립트 실행 후 emcc 호출
         # Windows: && 사용 / Mac,Linux: source 및 && 사용
@@ -50,14 +48,11 @@ def run_wasm_build(sec_key: str = None):
     # 3. 빌드 실행
     print(f"[*] Compiling WASM engine...")
 
+
     try:
-        # final_command가 리스트냐 문자열이냐에 따라 옵션을 유동적으로 설정
-        is_list = isinstance(final_command, list)
-        subprocess.run(final_command, cwd=str(WASM_CPP_PATH), 
-                       shell=False if is_list else True,
-                       check=True,
-                       executable=None if (is_list or platform.system() == "Windows") else "/bin/bash"
-                       )
+        subprocess.run(final_command, cwd=str(WASM_CPP_PATH), shell=True, check=True,
+                       capture_output=True, text=True,
+                       executable="/bin/bash" if platform.system() != "Windows" else None)
         print("[+] Build successful!")
         return True
     except subprocess.CalledProcessError as e:
@@ -67,7 +62,7 @@ def run_wasm_build(sec_key: str = None):
         print("DEBUG : WASM BUILD FAIL!!!")
         print(f"🔗 [확인] 조립된 명령어 내용: '{final_command}'")
         print(f"📁 [확인] 실행 디렉토리: {WASM_CPP_PATH}")
-        # 💡 숨겨진 표준 출력(stdout)과 에러 출력(stderr)을 강제로 로그에 찍기
+        # 표준 출력(stdout)과 에러 출력(stderr)을 강제로 로그에 찍기
         print('\n❌ === [WASM BUILD STDOUT] ===')
         print(e.stdout if e.stdout else '(Empty)')
 
