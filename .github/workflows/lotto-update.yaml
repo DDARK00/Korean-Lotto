@@ -37,9 +37,9 @@ jobs:
         uses: nick-fields/retry@v3
         with:
           # auto retry
-          # timeout_minutes: 5
-          # max_attempts: 3
-          # retry_wait_seconds: 300
+          max_attempts: 3
+          timeout_minutes: 5
+          retry_wait_seconds: 300
           command: |
             pip install -r requirements.txt
             cd script
