@@ -27,7 +27,7 @@ def run_wasm_build(sec_key: str = None):
         "-s EXPORTED_RUNTIME_METHODS=\"['ccall','cwrap']\"",
         "-s ALLOW_MEMORY_GROWTH=1",
         "--closure 1",
-        "-s STRIP=1"
+        "-g0"
     ]
 
     # 2. Emscripten 환경 설정과 빌드 명령어 통합
