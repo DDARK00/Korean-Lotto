@@ -25,12 +25,14 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+          cache: 'pip'
 
       # 3. Emscripten (emsdk) 설정
       - name: Set up Emscripten
-        uses: mymindstorm/setup-emsdk@v14
+        uses: emscripten-core/setup-emsdk@v16
         with:
-          version: 'latest'
+          version: '5.0.7' 
+          actions-cache-folder: 'emsdk-cache'
 
       # 4. 통합 파이프라인 실행 (실패 시 5분 뒤 자동 재시도)
       - name: Run Total Pipeline with Retry
