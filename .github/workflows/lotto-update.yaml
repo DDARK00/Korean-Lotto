@@ -4,10 +4,10 @@ name: Weekly Lotto Update & WASM Build
 # pm 9:00, 9:05, 9:10 retry.
 # next day am 9:00
 on:
-    # schedule:
-    #   - cron: '0 12 * * 6' # 매주 토요일 21:00 KST
-    #   - cron: '0 0 * * 0'  # 일요일 아침 9시
-  workflow_dispatch:
+    schedule:
+      - cron: '0 12 * * 6' # 매주 토요일 21:00 KST
+      - cron: '0 0 * * 0'  # 일요일 아침 9시
+    workflow_dispatch:
 
 jobs:
   update-and-build:
@@ -55,7 +55,9 @@ jobs:
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           
           git add data/ fe/public/
-          
+          git add -f fe/public/wasm/engine.js
+          git add -f fe/public/wasm/engine.wasm
+
           if ! git diff --staged --quiet; then
             git commit -m "chore: 고유 데이터 및 WASM 엔진 자동 업데이트 [skip ci]"
             git push
