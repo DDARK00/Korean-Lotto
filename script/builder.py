@@ -23,10 +23,10 @@ def run_wasm_build(sec_key: str = None):
     settings = [
         "-O3",
         f'-DSEC_KEY=\"{sec_key}\"',
-        "-s EXPORTED_FUNCTIONS=['_main','_start_simulation','_malloc','_free']",
-        "-s EXPORTED_RUNTIME_METHODS=['ccall','cwrap']",
-        "-s ALLOW_MEMORY_GROWTH=1",
-        "--closure 1",
+        "-s", "EXPORTED_FUNCTIONS=['_main','_start_simulation','_malloc','_free']",
+        "-s", "EXPORTED_RUNTIME_METHODS=['ccall','cwrap']",
+        "-s", "ALLOW_MEMORY_GROWTH=1",
+        "--closure", "1",
     ]
     if platform.system() != "Windows":
 
@@ -37,7 +37,8 @@ def run_wasm_build(sec_key: str = None):
 
     if os.getenv("GITHUB_ACTIONS") == "true":
         # GitHub Actions 전용: 바로 emcc 호출
-        final_command = emcc_cmd_str
+        final_command = command
+        print("[*] Execution Mode: GitHub Actions")
     else:
         # 로컬 환경: 환경 설정 스크립트 실행 후 emcc 호출
         # Windows: && 사용 / Mac,Linux: source 및 && 사용
@@ -49,10 +50,14 @@ def run_wasm_build(sec_key: str = None):
     # 3. 빌드 실행
     print(f"[*] Compiling WASM engine...")
 
-
     try:
-        subprocess.run(final_command, cwd=str(WASM_CPP_PATH), shell=True, check=True,
-                       executable="/bin/bash" if platform.system() != "Windows" else None)
+        # final_command가 리스트냐 문자열이냐에 따라 옵션을 유동적으로 설정
+        is_list = isinstance(final_command, list)
+        subprocess.run(final_command, cwd=str(WASM_CPP_PATH), 
+                       shell=False if is_list else True,
+                       check=True,
+                       executable=None if (is_list or platform.system() == "Windows") else "/bin/bash"
+                       )
         print("[+] Build successful!")
         return True
     except subprocess.CalledProcessError as e:
