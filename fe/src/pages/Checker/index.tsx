@@ -59,6 +59,8 @@ export default function CheckerPage() {
           <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-3 mb-6 text-center">
             <p className="text-yellow-700 text-sm">
               WASM 엔진을 로드할 수 없습니다. 기본 모드로 동작합니다.
+              <br />
+              {wasmError}
             </p>
           </div>
         )}

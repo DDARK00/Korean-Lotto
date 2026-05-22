@@ -1,4 +1,4 @@
-// 실제 history.json 데이터 형식
+// 실제 lotto_history.json 데이터 형식
 export interface LottoHistory {
   ltEpsd: number         // 회차
   tm1WnNo: number        // 당첨번호 1

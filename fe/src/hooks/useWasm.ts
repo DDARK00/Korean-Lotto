@@ -31,7 +31,7 @@ let historyDataCache: LottoHistory[] | null = null
 async function loadHistoryData(): Promise<LottoHistory[]> {
   if (historyDataCache) return historyDataCache
   
-  const response = await fetch('/data/history.json')
+  const response = await fetch('/data/lotto_history.json')
   if (!response.ok) {
     throw new Error('히스토리 데이터를 불러올 수 없습니다.')
   }
@@ -39,15 +39,97 @@ async function loadHistoryData(): Promise<LottoHistory[]> {
   return historyDataCache!
 }
 
+/* =========================
+ * JS ENGINE (fallback)
+ * ========================= */
+async function computeJS(userNumbers: number[]): Promise<CheckResult> {
+  const history = await loadHistoryData()
+
+  const results: LottoResult[] = history.map((draw) => {
+    const winningNumbers = getWinningNumbers(draw)
+
+    const matchedNumbers = userNumbers.filter(n =>
+      winningNumbers.includes(n)
+    )
+
+    const matchCount = matchedNumbers.length
+    const hasBonusMatch = userNumbers.includes(draw.bnsWnNo)
+    const rank = calculateRank(matchCount, hasBonusMatch)
+
+    return {
+      round: draw.ltEpsd,
+      numbers: winningNumbers,
+      bonusNumber: draw.bnsWnNo,
+      matchCount,
+      matchedNumbers,
+      hasBonusMatch,
+      rank,
+      prize1st: draw.rnk1WnAmt,
+      prize2nd: draw.rnk2WnAmt,
+      prize3rd: draw.rnk3WnAmt,
+    }
+  })
+
+  const summary: ResultSummary = {
+    total: results.length,
+    firstPlace: results.filter(r => r.rank === 1).length,
+    secondPlace: results.filter(r => r.rank === 2).length,
+    thirdPlace: results.filter(r => r.rank === 3).length,
+    fourthPlace: results.filter(r => r.rank === 4).length,
+    fifthPlace: results.filter(r => r.rank === 5).length,
+  }
+
+  return {
+    userNumbers,
+    results: results.sort((a, b) => b.round - a.round),
+    summary,
+  }
+}
+
+/* =========================
+ * WASM ENGINE (minimal)
+ * ========================= */
+async function computeWASM(
+  mod: EmscriptenModule,
+  startFn: (ptr: number) => number,
+  userNumbers: number[]
+): Promise<CheckResult | null> {
+  const ptr = mod._malloc(6 * 4)
+
+  try {
+    mod.HEAP32.set(userNumbers, ptr >> 2)
+
+    const status = startFn(ptr)
+
+    if (status !== 0) {
+      throw new Error(`WASM error: ${status}`)
+    }
+
+    // 👉 현재 구조에서는 WASM 결과를 JS로 재계산한다고 가정
+    return computeJS(userNumbers)
+
+  } finally {
+    mod._free(ptr)
+  }
+}
+
+
 export function useWasm(): UseWasmReturn {
   const [status, setStatus] = useState<WasmStatus>('loading')
   const [error, setError] = useState<string | null>(null)
   const moduleRef = useRef<EmscriptenModule | null>(null)
   const startSimulationRef = useRef<((ptr: number) => number) | null>(null)
 
+  // 현재 status 저장용 ref
+  const statusRef = useRef<WasmStatus>('loading')
+
+  // status 변경될 때 ref 동기화
+  useEffect(() => {
+    statusRef.current = status
+  }, [status])
+
   useEffect(() => {
     let isMounted = true
-
     const loadWasm = async () => {
       try {
         // Module 객체 초기화
@@ -92,13 +174,7 @@ export function useWasm(): UseWasmReturn {
           document.head.appendChild(script)
         }
 
-        // 10초 타임아웃
-        setTimeout(() => {
-          if (isMounted && status === 'loading') {
-            setError('WASM 모듈 초기화 시간 초과')
-            setStatus('error')
-          }
-        }, 10000)
+
       } catch (err) {
         if (isMounted) {
           setError(err instanceof Error ? err.message : 'WASM 로드 중 오류 발생')
@@ -106,94 +182,46 @@ export function useWasm(): UseWasmReturn {
         }
       }
     }
+    // 10초 타임아웃
+    const timer=setTimeout(() => {
+      if (!isMounted) return
 
+      if (statusRef.current === 'loading') {
+        setError('WASM 모듈 초기화 시간 초과')
+        setStatus('error')
+      }
+    }, 10000)
     loadWasm()
 
     return () => {
       isMounted = false
+      clearTimeout(timer)
+
     }
   }, [])
 
-  // JavaScript 폴백: WASM 없이 직접 계산
-  const checkNumbersJS = useCallback(async (userNumbers: number[]): Promise<CheckResult> => {
-    const history = await loadHistoryData()
-    
-    const results: LottoResult[] = history.map((draw) => {
-      const winningNumbers = getWinningNumbers(draw)
-      const matchedNumbers = userNumbers.filter((n) => winningNumbers.includes(n))
-      const matchCount = matchedNumbers.length
-      const hasBonusMatch = userNumbers.includes(draw.bnsWnNo)
-      const rank = calculateRank(matchCount, hasBonusMatch)
+    /* =========================
+   * SINGLE ENTRY POINT
+   * ========================= */
+  const checkNumbers = useCallback(
+    async (numbers: number[]): Promise<CheckResult | null> => {
+      try {
+        const mod = moduleRef.current
+        const wasmFn = startSimulationRef.current
 
-      return {
-        round: draw.ltEpsd,
-        numbers: winningNumbers,
-        bonusNumber: draw.bnsWnNo,
-        matchCount,
-        matchedNumbers,
-        hasBonusMatch,
-        rank,
-        prize1st: draw.rnk1WnAmt,
-        prize2nd: draw.rnk2WnAmt,
-        prize3rd: draw.rnk3WnAmt,
+        if (status === 'ready' && mod && wasmFn) {
+          return await computeWASM(mod, wasmFn, numbers)
+        }
+
+        return await computeJS(numbers)
+      } catch (err) {
+        console.error('checkNumbers error:', err)
+        return await computeJS(numbers)
       }
-    })
-
-    const summary: ResultSummary = {
-      total: results.length,
-      firstPlace: results.filter((r) => r.rank === 1).length,
-      secondPlace: results.filter((r) => r.rank === 2).length,
-      thirdPlace: results.filter((r) => r.rank === 3).length,
-      fourthPlace: results.filter((r) => r.rank === 4).length,
-      fifthPlace: results.filter((r) => r.rank === 5).length,
-    }
-
-    return {
-      userNumbers,
-      results: results.sort((a, b) => b.round - a.round),
-      summary,
-    }
-  }, [])
-
-  // WASM을 사용한 번호 체크
-  const checkNumbersWasm = useCallback(async (userNumbers: number[]): Promise<CheckResult | null> => {
-    if (!moduleRef.current || !startSimulationRef.current) {
-      return null
-    }
-
-    const mod = moduleRef.current
-    
-    // 6개의 int32를 위한 메모리 할당 (4바이트 * 6 = 24바이트)
-    const ptr = mod._malloc(6 * 4)
-    
-    // HEAP32에 번호 복사 (HEAP32는 int32 배열이므로 인덱스는 ptr >> 2)
-    for (let i = 0; i < 6; i++) {
-      mod.HEAP32[(ptr >> 2) + i] = userNumbers[i]
-    }
-    
-    // WASM 함수 호출
-    startSimulationRef.current(ptr)
-    
-    // 메모리 해제
-    mod._free(ptr)
-    
-    // WASM 실행 후 JS에서 결과 계산 (WASM은 시뮬레이션만 수행)
-    return checkNumbersJS(userNumbers)
-  }, [checkNumbersJS])
-
-  const checkNumbers = useCallback(async (numbers: number[]): Promise<CheckResult | null> => {
-    try {
-      // WASM이 준비되면 WASM 사용, 아니면 JS 폴백
-      if (status === 'ready' && moduleRef.current && startSimulationRef.current) {
-        return await checkNumbersWasm(numbers)
-      }
-      // JS 폴백
-      return await checkNumbersJS(numbers)
-    } catch (err) {
-      console.error('[v0] 번호 확인 중 오류:', err)
-      return null
-    }
-  }, [status, checkNumbersWasm, checkNumbersJS])
+    },
+    [status]
+  )
+  
 
   return { status, error, checkNumbers }
 }

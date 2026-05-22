@@ -18,13 +18,14 @@
     "resolveJsonModule": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["fe/src/*"],
-      "@components/*": ["fe/src/components/*"],
-      "@hooks/*": ["fe/src/hooks/*"],
-      "@pages/*": ["fe/src/pages/*"],
-      "@types/*": ["fe/src/types/*"],
-      "@utils/*": ["fe/src/utils/*"]
+      "@/*": ["./src/*"],
+      "@lib/*": ["./src/lib/*"],
+      "@components/*": ["./src/components/*"],
+      "@hooks/*": ["./src/hooks/*"],
+      "@pages/*": ["./src/pages/*"],
+      "@types/*": ["./src/types/*"],
+      "@utils/*": ["./src/utils/*"]
     }
   },
-  "include": ["fe/src"]
+  "include": ["./src"]
 }
