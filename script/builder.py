@@ -26,6 +26,9 @@ def run_wasm_build(sec_key: str = None):
         "-s EXPORTED_FUNCTIONS=\"['_main','_start_simulation','_malloc','_free']\"",
         "-s EXPORTED_RUNTIME_METHODS=\"['ccall','cwrap']\"",
         "-s ALLOW_MEMORY_GROWTH=1",
+        "-s MODULARIZE=1",
+        "-s EXPORT_ES6=1",
+        "-s ENVIRONMENT=web",
         "--closure 1",
         "-g0"
     ]
