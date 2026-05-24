@@ -3,12 +3,10 @@ import os
 from datetime import datetime
 from nacl.signing import SigningKey
 from nacl.encoding import RawEncoder
-
+from config import HEADER_PATH
 from data_manager import get_history
 from dotenv import load_dotenv
 
-# 설정
-HEADER_PATH = './wasm/src/lotto_data.h'
 # .env 파일이 있으면 읽어오고, 없으면(서버 환경) 시스템 환경변수를 그대로 사용합니다.
 load_dotenv()
 
