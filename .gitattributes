@@ -1,1 +1,4 @@
-wasm/src/monocypher* linguist-vendored
+wasm/src/monocypher.c linguist-vendored
+wasm/src/monocypher.h linguist-vendored
+wasm/src/monocypher-ed25519.c linguist-vendored
+wasm/src/monocypher-ed25519.h linguist-vendored
