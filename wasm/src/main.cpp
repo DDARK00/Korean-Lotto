@@ -85,7 +85,7 @@ public:
             return -1;
         }
         const LottoRecord* records = reinterpret_cast<const LottoRecord*>(LOTTO_RAW_DATA);
-        // std::cout << "Data verified. Starting simulation for " << LOTTO_TOTAL_COUNT << " rounds..." << std::endl;
+        std::cout << "Data verified. Starting simulation for " << LOTTO_TOTAL_COUNT << " rounds..." << std::endl;
         int found_count = 0;
 
         for (int i = 0; i < LOTTO_TOTAL_COUNT; ++i) {
@@ -104,6 +104,7 @@ public:
                 found_count++;
             }
         }
+        std::cout << "[C++ WASM] simulation completed. winning rounds: " << found_count << std::endl;
         return found_count;
     }
 };
