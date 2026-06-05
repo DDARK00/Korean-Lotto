@@ -62,7 +62,12 @@ def fetch_lotto_batch(newest):
     url = api + target
 
     try:
-        resp = requests.get(url,timeout=10).json()
+        headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'application/json, text/plain, */*',
+        'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7'
+    }
+        resp = requests.get(url,headers=headers,timeout=10).json()
         # 리스트에서 첫 번째 아이템(최신회차)만 가져옴
         data_list = resp.get('data', {}).get('list', [])
         if data_list:
