@@ -24,7 +24,7 @@ def run_wasm_build(sec_key: str = None):
         "-O3",
         f'-DSEC_KEY=\"{sec_key}\"',
         "-s EXPORTED_FUNCTIONS=\"['_main','_start_simulation','_malloc','_free']\"",
-        "-s EXPORTED_RUNTIME_METHODS=\"['ccall','cwrap']\"",
+        "-s EXPORTED_RUNTIME_METHODS=\"['ccall','cwrap','HEAP32']\"",
         "-s ALLOW_MEMORY_GROWTH=1",
         "-s MODULARIZE=1",
         "-s EXPORT_ES6=1",

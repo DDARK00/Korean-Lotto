@@ -25,7 +25,9 @@
       "@pages/*": ["./src/pages/*"],
       "@types/*": ["./src/types/*"],
       "@utils/*": ["./src/utils/*"]
-    }
+    },
+    "allowJs":true,
+    "checkJs": false,
   },
   "include": ["./src"]
 }
