@@ -844,8 +844,8 @@ FodyWeavers.xsd
 # [Frontend]
 # Vite 빌드 결과물 및 Wasm 복사본
 /fe/dist/
-/fe/public/wasm/engine.js
-/fe/public/wasm/engine.wasm
+/fe/src/wasm/engine.js
+/fe/src/wasm/engine.wasm
 
 # [Fe except]
 # Fe에서 쓰는 lib 제외
