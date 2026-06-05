@@ -1,8 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import type { LottoHistory, LottoResult, CheckResult, ResultSummary } from '@lib/types'
 import { getWinningNumbers, calculateRank } from '@lib/types'
-
+import wasmUrl from '../wasm/engine.wasm?url';
 // Emscripten Module 타입
+import createModule, { WasmEngineModule } from '../wasm/engine.js';
+
 interface EmscriptenModule {
   _malloc: (size: number) => number
   _free: (ptr: number) => void
@@ -90,13 +92,14 @@ async function computeJS(userNumbers: number[]): Promise<CheckResult> {
  * WASM ENGINE (minimal)
  * ========================= */
 async function computeWASM(
-  mod: EmscriptenModule,
+  mod: WasmEngineModule,
   startFn: (ptr: number) => number,
   userNumbers: number[]
 ): Promise<CheckResult | null> {
   const ptr = mod._malloc(6 * 4)
 
   try {
+    console.log(mod)
     mod.HEAP32.set(userNumbers, ptr >> 2)
 
     const status = startFn(ptr)
@@ -117,7 +120,7 @@ async function computeWASM(
 export function useWasm(): UseWasmReturn {
   const [status, setStatus] = useState<WasmStatus>('loading')
   const [error, setError] = useState<string | null>(null)
-  const moduleRef = useRef<EmscriptenModule | null>(null)
+  const moduleRef = useRef<WasmEngineModule | null>(null)
   const startSimulationRef = useRef<((ptr: number) => number) | null>(null)
 
   // 현재 status 저장용 ref
@@ -130,51 +133,36 @@ export function useWasm(): UseWasmReturn {
 
   useEffect(() => {
     let isMounted = true
+    let timer: number;
     const loadWasm = async () => {
       try {
+        // 10초 타임아웃 타이머
+        timer = setTimeout(() => {
+        if (isMounted && moduleRef.current === null) {
+          setError('WASM 모듈 초기화 시간 초과');
+          setStatus('error');
+        }
+      }, 10000);
+
+
         // Module 객체 초기화
-        const moduleConfig = {
-          onRuntimeInitialized: () => {
-            const mod = window.Module
-            moduleRef.current = mod
-            
-            // cwrap으로 start_simulation 함수 래핑
-            // 비트셋(메모리) 포인터를 받아서 처리
-            startSimulationRef.current = mod.cwrap(
-              'start_simulation',
-              'number',
-              ['number']  // 비트셋 포인터
-            )
-            
-            if (isMounted) {
-              setStatus('ready')
-            }
-          },
+        const mod = await createModule({
+        locateFile: (path: string) => {
+          if (path.endsWith('.wasm')) return wasmUrl;
+          return path;
         }
+      });
+      if (!isMounted) return;
 
-        // 기존 Module이 있으면 병합
-        if (window.Module) {
-          Object.assign(window.Module, moduleConfig)
-        } else {
-          window.Module = moduleConfig as EmscriptenModule
-        }
+      // 모듈 저장 및 cwrap 함수 래핑
+      moduleRef.current = mod;
+      startSimulationRef.current = mod.cwrap(
+        'start_simulation',
+        'number', // 리턴 타입
+        ['number'] // 인자 타입 (비트셋 포인터)
+      );
 
-        // engine.js 스크립트 로드
-        const existingScript = document.querySelector('script[src="/wasm/engine.js"]')
-        if (!existingScript) {
-          const script = document.createElement('script')
-          script.src = '/wasm/engine.js'
-          script.async = true
-          script.onerror = () => {
-            if (isMounted) {
-              setError('WASM 스크립트 로드 실패')
-              setStatus('error')
-            }
-          }
-          document.head.appendChild(script)
-        }
-
-
+      setStatus('ready');
       } catch (err) {
         if (isMounted) {
           setError(err instanceof Error ? err.message : 'WASM 로드 중 오류 발생')
@@ -183,14 +171,14 @@ export function useWasm(): UseWasmReturn {
       }
     }
     // 10초 타임아웃
-    const timer=setTimeout(() => {
-      if (!isMounted) return
+    // const timer=setTimeout(() => {
+    //   if (!isMounted) return
 
-      if (statusRef.current === 'loading') {
-        setError('WASM 모듈 초기화 시간 초과')
-        setStatus('error')
-      }
-    }, 10000)
+    //   if (statusRef.current === 'loading') {
+    //     setError('WASM 모듈 초기화 시간 초과')
+    //     setStatus('error')
+    //   }
+    // }, 10000)
     loadWasm()
 
     return () => {
