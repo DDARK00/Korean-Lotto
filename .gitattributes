@@ -1,1 +1,4 @@
-**/monocypher* linguist-vendored
+**/monocypher.c linguist-vendored
+**/monocypher.h linguist-vendored
+**/monocypher-ed25519.c linguist-vendored
+**/monocypher-ed25519.h linguist-vendored
