@@ -54,14 +54,26 @@ async function computeJS(userNumbers: number[]): Promise<CheckResult> {
   const history = await loadHistoryData()
 
   const prizes: PrizeSummary = {
-      first: 0,
-      second: 0,
-      third: 0,
-      fourth: 0,
-      fifth: 0,
-      total: 0
+    first: 0,
+    second: 0,
+    third: 0,
+    fourth: 0,
+    fifth: 0,
+    total: 0
   }
-  const results: LottoResult[] = history.map((draw) => {
+
+  const RANK_KEYS: (keyof Omit<PrizeSummary, 'total'>)[] = [
+    'first',  // 1등
+    'second', // 2등
+    'third',  // 3등
+    'fourth', // 4등
+    'fifth'   // 5등
+  ];
+
+  const results: LottoResult[]=[]
+  for (let i = 0; i < history.length; i++) {
+    let draw=history[i]
+    
     const winningNumbers = getWinningNumbers(draw)
 
     const matchedNumbers = userNumbers.filter(n =>
@@ -71,8 +83,19 @@ async function computeJS(userNumbers: number[]): Promise<CheckResult> {
     const matchCount = matchedNumbers.length
     const hasBonusMatch = userNumbers.includes(draw.bnsWnNo)
     const rank = calculateRank(matchCount, hasBonusMatch)
+    if (!rank) continue;
 
-    return {
+    const amount =
+      rank === 1 ? draw.rnk1WnAmt :
+        rank === 2 ? draw.rnk2WnAmt :
+          rank === 3 ? draw.rnk3WnAmt :
+            rank === 4 ? 50000 : 5000;
+    const targetKey = RANK_KEYS[rank - 1];
+
+    prizes[targetKey] += amount;
+    prizes.total += amount;
+
+    results.push ({
       round: draw.ltEpsd,
       numbers: winningNumbers,
       bonusNumber: draw.bnsWnNo,
@@ -83,8 +106,8 @@ async function computeJS(userNumbers: number[]): Promise<CheckResult> {
       prize1st: draw.rnk1WnAmt,
       prize2nd: draw.rnk2WnAmt,
       prize3rd: draw.rnk3WnAmt,
-    }
-  })
+    })
+  }
 
   const summary: ResultSummary = {
     total: results.length,
@@ -180,14 +203,14 @@ async function computeWASM(
 
       const draw = historyMap.get(round);
       if (!draw) continue;
-      
+
       const winningNumbers = getWinningNumbers(draw);
-      const amount = 
-      rank === 1 ? draw.rnk1WnAmt :
-      rank === 2 ? draw.rnk2WnAmt :
-      rank === 3 ? draw.rnk3WnAmt :
-      rank === 4 ? 50000 : 5000;
-      const targetKey = RANK_KEYS[rank-1];
+      const amount =
+        rank === 1 ? draw.rnk1WnAmt :
+          rank === 2 ? draw.rnk2WnAmt :
+            rank === 3 ? draw.rnk3WnAmt :
+              rank === 4 ? 50000 : 5000;
+      const targetKey = RANK_KEYS[rank - 1];
       prizes[targetKey] += amount;
       prizes.total += amount;
 
@@ -204,7 +227,6 @@ async function computeWASM(
         prize3rd: draw.rnk3WnAmt,
       });
     }
-    console.log(prizes)
 
     const summary: ResultSummary = {
       total: history.length,
