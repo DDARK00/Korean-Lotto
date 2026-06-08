@@ -21,7 +21,7 @@ export default function CheckerPage() {
         setResult(checkResult)
       }
     } catch (err) {
-      console.error('[v0] 당첨 확인 오류:', err)
+      console.error('당첨 확인 오류:', err)
     } finally {
       setIsChecking(false)
     }
