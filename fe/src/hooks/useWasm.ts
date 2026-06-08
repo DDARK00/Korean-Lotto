@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import type { LottoHistory, LottoResult, CheckResult, ResultSummary } from '@lib/types'
+import type { LottoHistory, LottoResult, CheckResult, ResultSummary, PrizeSummary } from '@lib/types'
 import { getWinningNumbers, calculateRank } from '@lib/types'
 import wasmUrl from '../wasm/engine.wasm?url';
 import createModule, { WasmEngineModule } from '../wasm/engine.js';
@@ -53,6 +53,14 @@ async function loadHistoryData(): Promise<LottoHistory[]> {
 async function computeJS(userNumbers: number[]): Promise<CheckResult> {
   const history = await loadHistoryData()
 
+  const prizes: PrizeSummary = {
+      first: 0,
+      second: 0,
+      third: 0,
+      fourth: 0,
+      fifth: 0,
+      total: 0
+  }
   const results: LottoResult[] = history.map((draw) => {
     const winningNumbers = getWinningNumbers(draw)
 
@@ -85,6 +93,7 @@ async function computeJS(userNumbers: number[]): Promise<CheckResult> {
     thirdPlace: results.filter(r => r.rank === 3).length,
     fourthPlace: results.filter(r => r.rank === 4).length,
     fifthPlace: results.filter(r => r.rank === 5).length,
+    prizes
   }
 
   return {
@@ -142,6 +151,22 @@ async function computeWASM(
     // 히스토리를 빠르게 조회하기 위해 Map 변환 (WASM 결과 매핑 최적화)
     const historyMap = new Map(history.map(h => [h.ltEpsd, h]))
     const view = new DataView(rawBuffer);
+
+    const prizes: PrizeSummary = {
+      first: 0,
+      second: 0,
+      third: 0,
+      fourth: 0,
+      fifth: 0,
+      total: 0
+    }
+    const RANK_KEYS: (keyof Omit<PrizeSummary, 'total'>)[] = [
+      'first',  // 1등
+      'second', // 2등
+      'third',  // 3등
+      'fourth', // 4등
+      'fifth'   // 5등
+    ];
     for (let i = 0; i < foundCount; i++) {
       // 현재 구조체가 시작되는 정확한 절대 바이트 위치 (포인터 시작점 + 오프셋)
       const byteOffset = outPtr + (i * structSize);
@@ -155,8 +180,16 @@ async function computeWASM(
 
       const draw = historyMap.get(round);
       if (!draw) continue;
-
+      
       const winningNumbers = getWinningNumbers(draw);
+      const amount = 
+      rank === 1 ? draw.rnk1WnAmt :
+      rank === 2 ? draw.rnk2WnAmt :
+      rank === 3 ? draw.rnk3WnAmt :
+      rank === 4 ? 50000 : 5000;
+      const targetKey = RANK_KEYS[rank-1];
+      prizes[targetKey] += amount;
+      prizes.total += amount;
 
       results.push({
         round,
@@ -171,6 +204,7 @@ async function computeWASM(
         prize3rd: draw.rnk3WnAmt,
       });
     }
+    console.log(prizes)
 
     const summary: ResultSummary = {
       total: history.length,
@@ -179,6 +213,7 @@ async function computeWASM(
       thirdPlace: results.filter(r => r.rank === 3).length,
       fourthPlace: results.filter(r => r.rank === 4).length,
       fifthPlace: results.filter(r => r.rank === 5).length,
+      prizes
     }
 
     return {
@@ -218,7 +253,7 @@ export function useWasm(): UseWasmReturn {
         timer = setTimeout(() => {
           if (isMounted && moduleRef.current === null) {
             console.warn('WASM 초기화 시간 초과 - JS Fallback 모드로 작동합니다.')
-            setStatus('ready') // 사용자 UI 진입을 위해 ready 처리 후 JS 대체 유도
+            setStatus('error') // 사용자 UI 진입을 위해 error 처리 후 JS 대체 유도
           }
         }, 10000)
 
@@ -235,7 +270,7 @@ export function useWasm(): UseWasmReturn {
 
         moduleRef.current = mod
 
-        // 🌟 C++ 명세 명확화에 따른 cwrap 입력/리턴 타입 재교정
+        // 🌟 C++ 명세에 따른 cwrap 입력/리턴 타입 재교정
         startSimulationRef.current = mod.cwrap(
           'start_simulation',
           'number',            // 리턴 타입: found_count (int)
@@ -247,7 +282,7 @@ export function useWasm(): UseWasmReturn {
         console.error('WASM 모듈 로드 실패, JS 모드로 자동 대체됩니다:', err)
         if (isMounted) {
           clearTimeout(timer)
-          setStatus('ready') // 에러로 차단하지 않고 Fallback 구동 환경 제공
+          setStatus('error') // 에러로 Fallback 구동 환경 제공
         }
       }
     }

@@ -1,5 +1,5 @@
 import { LottoBall } from './LottoBall'
-import type { LottoResult } from '@lib/types'
+import { formatPrize, type LottoResult } from '@lib/types'
 
 interface ResultCardProps {
   result: LottoResult
@@ -25,20 +25,27 @@ function getRankColorClass(rank: number | null): string {
   return 'bg-gray-200 text-gray-600'
 }
 
-function formatPrize(amount: number): string {
-  if (amount === 0) return '-'
-  if (amount >= 100000000) {
-    return `${(amount / 100000000).toFixed(1)}억원`
-  }
-  if (amount >= 10000) {
-    return `${(amount / 10000).toFixed(0)}만원`
-  }
-  return `${amount.toLocaleString()}원`
-}
 
 export function ResultCard({ result, userNumbers }: ResultCardProps) {
   const rankClass = getRankColorClass(result.rank)
-
+  let winningPrize = 0
+  switch (result.rank) {
+    case 1:
+      winningPrize = result.prize1st
+      break;
+    case 2:
+      winningPrize = result.prize2nd
+      break;
+    case 3:
+      winningPrize = result.prize3rd
+      break;
+    case 4:
+      winningPrize = 50000
+      break;
+    case 5:
+      winningPrize = 5000;
+      break;
+  }
   return (
     <div className="bg-white rounded-xl shadow-md p-4 hover:shadow-lg transition-shadow">
       <div className="flex items-center justify-between mb-3">
@@ -54,7 +61,12 @@ export function ResultCard({ result, userNumbers }: ResultCardProps) {
           {getRankText(result.rank)}
         </span>
       </div>
+      <div className='flex'>
+        <span className='ml-auto px-3'>
+          {formatPrize(winningPrize)}
+        </span>
 
+      </div>
       {/* 당첨 번호 */}
       <div className="mb-3">
         <p className="text-xs text-gray-500 mb-1">당첨 번호</p>

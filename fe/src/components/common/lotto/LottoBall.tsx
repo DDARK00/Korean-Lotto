@@ -34,7 +34,7 @@ export function LottoBall({ number, size = 'md', isMatched = false, isBonus = fa
         shadow-md
         transition-all duration-200
         ${isMatched ? 'ring-2 ring-offset-2 ring-green-500 scale-110' : ''}
-        ${isBonus ? 'ring-2 ring-offset-2 ring-purple-500' : ''}
+        ${isBonus ? 'ring-offset-2' : ''}
       `}
     >
       {number}

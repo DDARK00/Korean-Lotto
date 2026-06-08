@@ -30,6 +30,15 @@ export interface LottoResult {
   prize3rd: number
 }
 
+export interface PrizeSummary {
+  first: number;
+  second: number;
+  third: number;
+  fourth: number;
+  fifth: number;
+  total: number; // 총 당첨금
+}
+
 // 결과 요약
 export interface ResultSummary {
   total: number
@@ -38,6 +47,7 @@ export interface ResultSummary {
   thirdPlace: number
   fourthPlace: number
   fifthPlace: number
+  prizes: PrizeSummary
 }
 
 // 전체 결과
@@ -67,4 +77,16 @@ export function calculateRank(matchCount: number, hasBonus: boolean): number | n
   if (matchCount === 4) return 4
   if (matchCount === 3) return 5
   return null
+}
+
+// 금액 포맷
+export function formatPrize(amount: number): string {
+  if (amount === 0) return '-'
+  if (amount >= 100000000) {
+    return `${(amount / 100000000).toFixed(1)}억원`
+  }
+  if (amount >= 10000) {
+    return `${(amount / 10000).toFixed(0)}만원`
+  }
+  return `${amount.toLocaleString()}원`
 }

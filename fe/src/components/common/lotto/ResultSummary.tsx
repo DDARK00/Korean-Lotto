@@ -1,4 +1,4 @@
-import type { CheckResult } from '@lib/types'
+import { formatPrize, type CheckResult } from '@lib/types'
 
 interface ResultSummaryProps {
   result: CheckResult
@@ -32,11 +32,14 @@ export function ResultSummary({ result }: ResultSummaryProps) {
         ))}
       </div>
 
-      <div className="flex justify-between items-center p-4 bg-gray-50 rounded-xl">
+      <div className="flex flex-col p-4 bg-gray-50 rounded-xl">
+        <div className='flex justify-between'>
         <span className="text-gray-600">총 {summary.total}회차 중</span>
         <span className="text-lg font-bold text-blue-600">
           {totalWins}회 당첨 ({((totalWins / summary.total) * 100).toFixed(2)}%)
         </span>
+        </div>
+        <span className='ml-auto pr-2 text-gray-600'>합계 {formatPrize(summary.prizes.total)}</span>
       </div>
     </div>
   )
