@@ -56,8 +56,9 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           
-          git add data/ fe/src/wasm/
+          git add data/ fe/src/wasm/ fe/public/data/
           git add -f wasm/src/lotto_data.h
+          git add -f fe/public/data/lotto_history.json
           git add -f fe/src/wasm/engine.js
           git add -f fe/src/wasm/engine.wasm
 
