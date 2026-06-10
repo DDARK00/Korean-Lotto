@@ -18,7 +18,7 @@ interface UseWasmReturn {
 
 // 히스토리 데이터 캐시
 let historyDataCache: LottoHistory[] | null = null
-
+const LOTTO_DATA_URL = `${import.meta.env.BASE_URL}data/lotto_history.json`;
 /*
 c++ 구조체 타입
 #pragma pack(push, 1)
@@ -43,7 +43,7 @@ struct MatchResult {
 async function loadHistoryData(): Promise<LottoHistory[]> {
   if (historyDataCache) return historyDataCache
 
-  const response = await fetch('/data/lotto_history.json')
+  const response = await fetch(LOTTO_DATA_URL)
   if (!response.ok) {
     throw new Error('히스토리 데이터를 불러올 수 없습니다.')
   }
