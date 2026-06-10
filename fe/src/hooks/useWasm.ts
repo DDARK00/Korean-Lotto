@@ -10,6 +10,10 @@ interface UseWasmReturn {
   status: WasmStatus
   error: string | null
   checkNumbers: (numbers: number[]) => Promise<CheckResult | null>
+  _rawWasmContext: {
+    mod:WasmEngineModule|null
+    wasmFn:((userBitset: bigint, outPtr: number) => number) | null
+  }
 }
 
 // 히스토리 데이터 캐시
@@ -50,7 +54,7 @@ async function loadHistoryData(): Promise<LottoHistory[]> {
 /* =========================
  * JS ENGINE (fallback)
  * ========================= */
-async function computeJS(userNumbers: number[]): Promise<CheckResult> {
+export async function computeJS(userNumbers: number[]): Promise<CheckResult> {
   const history = await loadHistoryData()
 
   const prizes: PrizeSummary = {
@@ -94,7 +98,6 @@ async function computeJS(userNumbers: number[]): Promise<CheckResult> {
 
     prizes[targetKey] += amount;
     prizes.total += amount;
-
     results.push ({
       round: draw.ltEpsd,
       numbers: winningNumbers,
@@ -110,7 +113,7 @@ async function computeJS(userNumbers: number[]): Promise<CheckResult> {
   }
 
   const summary: ResultSummary = {
-    total: results.length,
+    total: history.length,
     firstPlace: results.filter(r => r.rank === 1).length,
     secondPlace: results.filter(r => r.rank === 2).length,
     thirdPlace: results.filter(r => r.rank === 3).length,
@@ -129,7 +132,7 @@ async function computeJS(userNumbers: number[]): Promise<CheckResult> {
 /* =========================
  * WASM ENGINE (Optimized)
  * ========================= */
-async function computeWASM(
+export async function computeWASM(
   mod: WasmEngineModule,
   startFn: (userBitset: bigint, outPtr: number) => number,
   userNumbers: number[]
@@ -267,7 +270,7 @@ export function useWasm(): UseWasmReturn {
 
   useEffect(() => {
     let isMounted = true
-    let timer: number
+    let timer:ReturnType<typeof setTimeout>
 
     const initWasm = async () => {
       try {
@@ -326,7 +329,7 @@ export function useWasm(): UseWasmReturn {
         const mod = moduleRef.current
         const wasmFn = startSimulationRef.current
 
-        // WASM 모듈과 래퍼 함수가 확실히 바인딩되었을 때만 가속 작동
+        // WASM 모듈과 래퍼 함수가 확실히 바인딩되었을 때만 WASM 작동
         if (statusRef.current === 'ready' && mod && wasmFn) {
           console.log('🚀 Running with WASM core engine')
           return await computeWASM(mod, wasmFn, numbers)
@@ -343,5 +346,7 @@ export function useWasm(): UseWasmReturn {
     [] // status 종속성을 제거하여 불필요한 함수 재생성 억제 및 안정성 확보
   )
 
-  return { status, error, checkNumbers }
+  return { status, error, checkNumbers,
+    _rawWasmContext: moduleRef.current && startSimulationRef.current ? { mod: moduleRef.current, wasmFn: startSimulationRef.current } : {mod:null,wasmFn:null}
+   }
 }

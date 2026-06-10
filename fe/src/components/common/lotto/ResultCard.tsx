@@ -69,7 +69,7 @@ export function ResultCard({ result, userNumbers }: ResultCardProps) {
       </div>
       {/* 당첨 번호 */}
       <div className="mb-3">
-        <p className="text-xs text-gray-500 mb-1">당첨 번호</p>
+        <p className="text-xs text-gray-500 mb-2">당첨 번호</p>
         <div className="flex items-center gap-2">
           {result.numbers.map((num) => (
             <LottoBall

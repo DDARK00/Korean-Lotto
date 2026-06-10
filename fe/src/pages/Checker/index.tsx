@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react'
 import { useWasm } from '@hooks/useWasm'
 import { NumberInput, ResultSummary, ResultCard, LottoBall } from '@components/common/lotto'
 import type { CheckResult } from '@lib/types'
+import WasmTester from '@/hooks/WasmTester'
 
 type FilterType = 'all' | 'winners' | '1' | '2' | '3' | '4' | '5'
 
@@ -10,6 +11,7 @@ export default function CheckerPage() {
   const [result, setResult] = useState<CheckResult | null>(null)
   const [isChecking, setIsChecking] = useState(false)
   const [filter, setFilter] = useState<FilterType>('winners')
+  const [selectedNumbers, setSelectedNumbers] = useState<number[]>([])
 
   const handleCheck = useCallback(async (numbers: number[]) => {
     setIsChecking(true)
@@ -41,8 +43,11 @@ export default function CheckerPage() {
           <h1 className="text-3xl md:text-4xl font-bold text-gray-800 mb-2">
             로또 당첨 확인기
           </h1>
-          <p className="text-gray-600">
-            나의 번호가 역대 모든 로또에서 당첨되었는지 확인해보세요!
+          <p className="text-gray-800">
+            만약 이 번호를 계속 샀다면?
+          </p>
+          <p className="text-gray-800 ">
+            내가 고른 번호, 역대 로또 당첨 데이터와 비교해 보기
           </p>
         </header>
 
@@ -66,7 +71,7 @@ export default function CheckerPage() {
         )}
 
         {/* 번호 입력 */}
-        <NumberInput onSubmit={handleCheck} isLoading={isChecking} />
+        <NumberInput  selectedNumbers={selectedNumbers} setSelectedNumbers={setSelectedNumbers} onSubmit={handleCheck} isLoading={isChecking} />
 
         {/* 결과 영역 */}
         {result && (
@@ -128,6 +133,9 @@ export default function CheckerPage() {
         <footer className="text-center mt-12 text-gray-500 text-sm">
           <p>데이터는 동행복권 공식 결과를 기반으로 합니다.</p>
         </footer>
+      </div>
+      <div>
+        <WasmTester selectedNumbers={selectedNumbers} />
       </div>
     </div>
   )

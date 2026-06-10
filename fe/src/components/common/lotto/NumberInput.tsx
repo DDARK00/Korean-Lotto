@@ -4,10 +4,11 @@ import { LottoBall } from './LottoBall'
 interface NumberInputProps {
   onSubmit: (numbers: number[]) => void
   isLoading?: boolean
+  selectedNumbers: number[]
+  setSelectedNumbers: React.Dispatch<React.SetStateAction<number[]>>
 }
 
-export function NumberInput({ onSubmit, isLoading = false }: NumberInputProps) {
-  const [selectedNumbers, setSelectedNumbers] = useState<number[]>([])
+export function NumberInput({ onSubmit, isLoading = false, selectedNumbers, setSelectedNumbers }: NumberInputProps) {
   const [error, setError] = useState<string | null>(null)
 
   const handleNumberClick = useCallback((num: number) => {
