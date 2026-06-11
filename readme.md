@@ -1,6 +1,8 @@
 🏗️ Lotto Wasm Project Blueprint
 본 프로젝트는 GitHub Actions를 통한 데이터 자동 수집 파이프라인과 WebAssembly(Wasm) 기반의 고속 연산 엔진을 결합한 차세대 로또 분석 플랫폼입니다.
 
+[Github Pages](https://ddark00.github.io/Korean-Lotto)
+
 📁 Project Directory Structure
 ```Plaintext
 root/
@@ -31,9 +33,9 @@ root/
 
 🛠️ Work Pipeline & Logic Flow
 1. Data Collection Phase (Python)
-  Incremental Update: 기존 history.json의 마지막 회차를 인식하여 누락된 최신 회차만 수집합니다.
+  Incremental Update: 기존 history.json의 마지막 회차를 인식하여 최신 회차만 수집합니다.
 
-- Politeness Strategy: 초기 대량 수집(1~1,200회)은 로컬에서 수행 후 커밋하며, 자동화 공정에서는 time.sleep을 적용하여 서버 부하를 최소화합니다.
+- Politeness Strategy: 초기 대량 수집(1~1,200회)은 로컬에서 수행 후 커밋하며, 자동화 공정에서는 단일 회차를 수집하여 서버 부하를 최소화합니다.
 
 2. Processing & Security Phase (Python)
 Bitset Compression: 6개의 번호를 uint64_t 정수의 비트 필드에 매핑하여 메모리 점유율을 줄이고 연산 속도를 극대화합니다.
@@ -45,7 +47,7 @@ Bitset Compression: 6개의 번호를 uint64_t 정수의 비트 필드에 매핑
 3. Wasm Engine Build (C++)
 Integrity Check: 엔진 구동 시 내장된 Public Key로 데이터의 서명을 검증하여 위변조를 차단합니다.
 
-  - High-Speed Matching: Bitwise AND 및 popcount 알고리즘을 사용하여 수천 회차의 대조 작업을 밀리초(ms) 단위로 처리합니다.
+- High-Speed Matching: Bitwise AND 및 popcount 알고리즘을 사용하여 수천 회차의 대조 작업을 밀리초(ms) 단위로 처리합니다.
 
 - Emscripten Build: 최적화된 C++ 로직을 웹 브라우저 호환 바이너리로 빌드합니다.
 
