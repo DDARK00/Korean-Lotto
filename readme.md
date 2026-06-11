@@ -1,4 +1,4 @@
-🏗️ Lotto Wasm Project Blueprint
+🏗️ Lotto Wasm Project Blueprint  
 본 프로젝트는 GitHub Actions를 통한 데이터 자동 수집 파이프라인과 WebAssembly(Wasm) 기반의 고속 연산 엔진을 결합한 차세대 로또 분석 플랫폼입니다.
 
 [Github Pages](https://ddark00.github.io/Korean-Lotto)
