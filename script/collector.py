@@ -6,6 +6,15 @@ from config import API_PATH
 with open(API_PATH,'r',encoding='utf-8') as api_json:
     api=json.load(api_json).get('endpoint')
 
+"""
+sys.exit(status) 설정값
+"""
+SUCCESS = 0
+FAILURE = 1
+SKIPPED = 10
+NO_DATA = 11
+TIMEOUT = 124
+
 
 # 신규 데이터를 통합 처리하는 함수
 def update_lotto_data():
@@ -22,10 +31,10 @@ def update_lotto_data():
 
     if saved_latest >= real_latest :
         print('업데이트할 새로운 회차가 없습니다.')
-        return
+        return SKIPPED # 10
 
     # 데이터 수집
-    new_data = fetch_lotto_batch(real_latest)
+    new_data, status = fetch_lotto_batch(real_latest)
 
     if new_data:
         history_data.append(new_data)
@@ -34,10 +43,11 @@ def update_lotto_data():
         history_data.sort(key=lambda x: x['ltEpsd'])
         save_history(history_data)
         print(f'✅ 완료: 새로운 {real_latest} 회차 저장 완료!')
-        return True
+        return SUCCESS
     else:
-        print('업데이트할 새로운 데이터가 없습니다.')
-        return False
+        enum={0: 'SUCCESS', 1: 'FAILURE', 10: 'SKIPPED', 11: 'NO_DATA', 124: 'TIMEOUT'}
+        print(f"업데이트할 새로운 데이터가 없습니다. CODE: {status}({enum.get(status, '-1')})")
+        return status # 1, 10, 11, 124
 
 
 # 실제 최신회차 로또 라운드
@@ -54,7 +64,7 @@ def find_latest_lotto_round():
         return BASE_ROUND + ((dt - BASE_TIME).days // 7)
 
     result = get_lotto_round()
-    return  result
+    return result
 
 # API 호출 함수
 def fetch_lotto_batch(newest):
@@ -66,7 +76,7 @@ def fetch_lotto_batch(newest):
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'Accept': 'application/json, text/plain, */*',
         'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7'
-    }
+        }
         resp = requests.get(url,headers=headers,timeout=10).json()
         # 리스트에서 첫 번째 아이템(최신회차)만 가져옴
         data_list = resp.get('data', {}).get('list', [])
@@ -91,15 +101,20 @@ def fetch_lotto_batch(newest):
             
             if filtered.get('ltEpsd') == newest:
                 print(f'{target}회차 수집 성공')
-                return filtered
-
+                return filtered, SUCCESS # 0
+            else :
+                print(f'{target}회차 데이터 형식 오류')
+                return None, FAILURE # 11
         else:
             print("최신 회차 미등록!")
+            return None, NO_DATA # 11
+    except requests.exceptions.Timeout as e:
+        print(f"네트워크 시간 초과: {e}")
+        return None, TIMEOUT # 124
 
     except requests.exceptions.RequestException as e:
         print(f"네트워크 오류 발생: {e}")
-
-    return None
+        return None, FAILURE # 1
 
 
 if __name__ == '__main__':
