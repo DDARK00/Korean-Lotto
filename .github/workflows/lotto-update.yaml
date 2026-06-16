@@ -3,6 +3,12 @@ name: Weekly Lotto Update & WASM Build
 # 시나리오 기반
 # pm 9:00, 9:05, 9:10 retry.
 # next day am 9:00
+
+# python sys.exit(status) 설정값
+# SUCCESS = 0
+# FAILURE, TIMEOUT, NO_DATA = 1(retry)
+# SKIPPED = 10(skip)
+
 on:
     schedule:
       - cron: '0 12 * * 6' # 매주 토요일 21:00 KST
@@ -42,16 +48,17 @@ jobs:
           max_attempts: 3
           timeout_minutes: 5
           retry_wait_seconds: 300
+          retry_on_exit_code: 1,11,124
           command: |
             pip install -r requirements.txt
-            cd script
-            python main.py
+            python script/main.py
         env:
           LOTTO_PRIVATE_KEY: ${{ secrets.LOTTO_PRIVATE_KEY }}
           SEC_KEY: ${{ secrets.SEC_KEY }} # 파이썬 내부 builder.py가 쓸 수 있게 주입
 
       # 5. 변경된 파일(JSON, WASM 등)을 Git에 커밋 및 푸시
       - name: Commit and Push changes
+        if: steps.pipeline.outcome == '0' # exit 0(success)으로 끝났을 때만 실행
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
@@ -69,3 +76,8 @@ jobs:
             echo "No changes to commit. Pipeline finished gracefully."
           fi
 
+      # 6. status 10(SKIPPED)일 때 
+      - name: Handle Skipped Case
+        if: steps.pipeline.outputs.exit_code == '10'
+        # 10번 코드 감지 시 정상 종료(SKIP)
+        run: exit 0
