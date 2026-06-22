@@ -24,6 +24,8 @@ def main():
     if status != 0: # SUCCESS가 아니면 종료
         print('새로 추가된 데이터가 없으므로 빌드 파이프라인을 종료합니다.')
         #  변경 사항 없으므로 여기서 Actions 종료
+        if status == 10: # Skipped 정상 종료
+            sys.exit(0)
         sys.exit(status) # 설정값 그대로 exit
 
     # Step 2: 비트셋 변환 및 데이터 서명 통합

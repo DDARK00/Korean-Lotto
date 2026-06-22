@@ -7,7 +7,6 @@ name: Weekly Lotto Update & WASM Build
 # python sys.exit(status) 설정값
 # SUCCESS = 0
 # FAILURE, TIMEOUT, NO_DATA = 1(retry)
-# SKIPPED = 10(skip)
 
 on:
     schedule:
@@ -42,6 +41,7 @@ jobs:
 
       # 4. 통합 파이프라인 실행 (실패 시 5분 뒤 자동 재시도)
       - name: Run Total Pipeline with Retry
+        id: pipeline
         uses: nick-fields/retry@v3
         with:
           # auto retry
@@ -58,7 +58,7 @@ jobs:
 
       # 5. 변경된 파일(JSON, WASM 등)을 Git에 커밋 및 푸시
       - name: Commit and Push changes
-        if: steps.pipeline.outcome == '0' # exit 0(success)으로 끝났을 때만 실행
+        if: steps.pipeline.outcome == 'success' # exit 0(success)으로 끝났을 때만 실행
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
@@ -75,9 +75,3 @@ jobs:
           else
             echo "No changes to commit. Pipeline finished gracefully."
           fi
-
-      # 6. status 10(SKIPPED)일 때 
-      - name: Handle Skipped Case
-        if: steps.pipeline.outputs.exit_code == '10'
-        # 10번 코드 감지 시 정상 종료(SKIP)
-        run: exit 0
