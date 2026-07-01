@@ -96,10 +96,12 @@ function useWasmTest() {
 // 2. 메인 테스트 컴포넌트
 export default function WasmTester({ selectedNumbers }: { selectedNumbers: number[] }) {
     const { runTest, isTesting } = useWasmTest(); // 내부 훅 사용
+    const [testNumbers, setTestNumbers] = useState<number[]>([])
     const [testResult, setTestResult] = useState<any>(null);
     const { _rawWasmContext } = useWasm()
     const { mod, wasmFn } = _rawWasmContext
     const [isOpen, setIsOpen] = useState(false);
+
     if (!mod || !wasmFn) {
         return (<p>wasm loading error</p>)
     }
@@ -107,6 +109,7 @@ export default function WasmTester({ selectedNumbers }: { selectedNumbers: numbe
     const testFn = async (numbers: number[]) => {
         const result = await runTest(numbers, mod, wasmFn)
         if (result.success) {
+            setTestNumbers(numbers)
             setTestResult(result)
         }
     }
@@ -174,7 +177,7 @@ export default function WasmTester({ selectedNumbers }: { selectedNumbers: numbe
                                     {testResult.match ? '🟢 검증 완료 (Pass)' : '🔴 연산 오류 (Fail)'}
                                 </div>
                                 <div className="text-gray-600 leading-tight">
-                                    [{selectedNumbers.join(', ')}] 번호에 대해 두 이기종 엔진의 전수 조사 결과 데이터가 완벽히 일치합니다.
+                                    [{testNumbers?.join(', ')}] 번호에 대해 두 이기종 엔진의 전수 조사 결과 데이터가 완벽히 일치합니다.
                                     <br />
                                     각 회차별 대조 데이터는 개발자 도구(F12) 콘솔 창에서 확인할 수 있습니다.
                                 </div>
