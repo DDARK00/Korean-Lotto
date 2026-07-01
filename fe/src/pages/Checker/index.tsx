@@ -15,8 +15,7 @@ export default function CheckerPage() {
 
   const handleCheck = useCallback(async (numbers: number[]) => {
     setIsChecking(true)
-    setResult(null)
-
+    
     try {
       const checkResult = await checkNumbers(numbers)
       if (checkResult) {
@@ -24,6 +23,8 @@ export default function CheckerPage() {
       }
     } catch (err) {
       console.error('당첨 확인 오류:', err)
+      alert('알 수 없는 오류가 발생했습니다! 당첨 확인 오류!')
+      setResult(null)
     } finally {
       setIsChecking(false)
     }
