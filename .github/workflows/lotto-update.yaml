@@ -19,6 +19,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    outputs:
+      changed: ${{ steps.commit.outputs.changed }}
 
     steps:
       # 1. 소스코드 체크아웃
@@ -58,6 +60,7 @@ jobs:
 
       # 5. 변경된 파일(JSON, WASM 등)을 Git에 커밋 및 푸시
       - name: Commit and Push changes
+        id: commit
         if: steps.pipeline.outcome == 'success' # exit 0(success)으로 끝났을 때만 실행
         run: |
           git config --global user.name "github-actions[bot]"
@@ -70,8 +73,20 @@ jobs:
           git add -f fe/src/wasm/engine.wasm
 
           if ! git diff --staged --quiet; then
-            git commit -m "chore: 고유 데이터 및 WASM 엔진 자동 업데이트 [skip ci]"
+            git commit -m "chore: 고유 데이터 및 WASM 엔진 자동 업데이트"
             git push
+            echo "changed=true" >> "$GITHUB_OUTPUT"
           else
             echo "No changes to commit. Pipeline finished gracefully."
+            echo "changed=false" >> "$GITHUB_OUTPUT"
           fi
+
+  # 6. 데이터가 실제로 갱신된 경우에만 GitHub Pages 재배포
+  deploy:
+    needs: update-and-build
+    if: needs.update-and-build.outputs.changed == 'true'
+    uses: ./.github/workflows/deploy.yaml
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
