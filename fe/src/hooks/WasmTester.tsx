@@ -8,8 +8,15 @@ function useWasmTest() {
     const runTest = async (userNumbers: number[], mod: WasmEngineModule, startFn: (userBitset: bigint, outPtr: number) => number) => {
         try {
             setIsTesting(true);
-            const jsResult = await computeJS(userNumbers)
-            const wasmResult = await computeWASM(mod, startFn, userNumbers)
+            // JS 시간 측정
+            const jsStart = performance.now();
+            const jsResult = await computeJS(userNumbers);
+            const jsTime = performance.now() - jsStart;
+
+            // WASM 시간 측정
+            const wasmStart = performance.now();
+            const wasmResult = await computeWASM(mod, startFn, userNumbers);
+            const wasmTime = performance.now() - wasmStart;
 
             // 3. 교차 검증 (Cross-Validation) 데이터 대조
             const isTotalMatch = jsResult.summary.total === wasmResult?.summary.total
@@ -24,6 +31,12 @@ function useWasmTest() {
             })
             // ==================== 🔬 ENGINE CROSS-VALIDATION LOGS ====================
             console.group(`%c🔬 엔진 교차 검증 데이터 덤프 (${userNumbers.join(', ')})`, "font-weight: bold; font-size: 12px; color: #4f46e5;");
+            console.log("%c[0/3] 성능 비교 (%c⏱ Performance Cold Start)", "font-weight:bold;color:#2563eb;");
+            console.table({
+                JS: `${jsTime.toFixed(2)} ms`,
+                WASM: `${wasmTime.toFixed(2)} ms`,
+                SpeedUp: `${(jsTime / wasmTime).toFixed(2)}x`
+            });
 
             // [1단계] 서머리 통계 대조 시각화 (테이블 형태로 한눈에 비교 가능하게 출력)
             console.log("%c[1/3] 엔진별 요약 데이터 대조 (Summary Matrix)", "font-weight: bold; color: #1e293b;");
@@ -81,7 +94,12 @@ function useWasmTest() {
                 match: isTotalMatch && isWinningMatch && isRankMatch && isDataIdentical,
                 jsSummary: jsResult.summary,
                 wasmSummary: wasmResult?.summary,
-                details: { isTotalMatch, isRankMatch, isDataIdentical }
+                details: { isTotalMatch, isRankMatch, isDataIdentical },    
+                performance: {
+                    js: jsTime,
+                    wasm: wasmTime,
+                    speedUp: jsTime / wasmTime,
+                },
             }
         } catch (err) {
             console.error("테스트 중 크래시 발생:", err)
@@ -175,6 +193,26 @@ export default function WasmTester({ selectedNumbers }: { selectedNumbers: numbe
                                 }`}>
                                 <div className="font-bold mb-1 flex items-center gap-1">
                                     {testResult.match ? '🟢 검증 완료 (Pass)' : '🔴 연산 오류 (Fail)'}
+                                </div>
+                                <div className="mt-2 border-t border-gray-200 pt-2 text-[11px] space-y-1">
+                                    <div className="flex justify-between">
+                                        <span>JS Engine</span>
+                                        <span className="font-mono">
+                                            {testResult.performance.js.toFixed(2)} ms
+                                        </span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span>WASM Engine</span>
+                                        <span className="font-mono">
+                                            {testResult.performance.wasm.toFixed(2)} ms
+                                        </span>
+                                    </div>
+                                    <div className="flex justify-between font-bold text-indigo-600">
+                                        <span>Speed Up</span>
+                                        <span>
+                                            {testResult.performance.speedUp.toFixed(2)}×
+                                        </span>
+                                    </div>
                                 </div>
                                 <div className="text-gray-600 leading-tight">
                                     [{testNumbers?.join(', ')}] 번호에 대해 두 이기종 엔진의 전수 조사 결과 데이터가 완벽히 일치합니다.
