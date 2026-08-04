@@ -11,8 +11,8 @@ interface UseWasmReturn {
   error: string | null
   checkNumbers: (numbers: number[]) => Promise<CheckResult | null>
   _rawWasmContext: {
-    mod:WasmEngineModule|null
-    wasmFn:((userBitset: bigint, outPtr: number) => number) | null
+    mod: WasmEngineModule | null
+    wasmFn: ((userBitset: bigint, outPtr: number) => number) | null
   }
 }
 
@@ -43,7 +43,9 @@ struct MatchResult {
 async function loadHistoryData(): Promise<LottoHistory[]> {
   if (historyDataCache) return historyDataCache
 
-  const response = await fetch(LOTTO_DATA_URL)
+  const response = await fetch(LOTTO_DATA_URL, {
+    cache: 'no-cache'
+  })
   if (!response.ok) {
     throw new Error('히스토리 데이터를 불러올 수 없습니다.')
   }
@@ -74,10 +76,10 @@ export async function computeJS(userNumbers: number[]): Promise<CheckResult> {
     'fifth'   // 5등
   ];
 
-  const results: LottoResult[]=[]
+  const results: LottoResult[] = []
   for (let i = 0; i < history.length; i++) {
-    let draw=history[i]
-    
+    let draw = history[i]
+
     const winningNumbers = getWinningNumbers(draw)
 
     const matchedNumbers = userNumbers.filter(n =>
@@ -98,7 +100,7 @@ export async function computeJS(userNumbers: number[]): Promise<CheckResult> {
 
     prizes[targetKey] += amount;
     prizes.total += amount;
-    results.push ({
+    results.push({
       round: draw.ltEpsd,
       numbers: winningNumbers,
       bonusNumber: draw.bnsWnNo,
@@ -270,7 +272,7 @@ export function useWasm(): UseWasmReturn {
 
   useEffect(() => {
     let isMounted = true
-    let timer:ReturnType<typeof setTimeout>
+    let timer: ReturnType<typeof setTimeout>
 
     const initWasm = async () => {
       try {
@@ -346,7 +348,8 @@ export function useWasm(): UseWasmReturn {
     [] // status 종속성을 제거하여 불필요한 함수 재생성 억제 및 안정성 확보
   )
 
-  return { status, error, checkNumbers,
-    _rawWasmContext: moduleRef.current && startSimulationRef.current ? { mod: moduleRef.current, wasmFn: startSimulationRef.current } : {mod:null,wasmFn:null}
-   }
+  return {
+    status, error, checkNumbers,
+    _rawWasmContext: moduleRef.current && startSimulationRef.current ? { mod: moduleRef.current, wasmFn: startSimulationRef.current } : { mod: null, wasmFn: null }
+  }
 }
