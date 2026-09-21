@@ -18,12 +18,17 @@ def run_wasm_build(sec_key: str = None):
     WASM_OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
 
     # 1. 빌드 설정 정의
-    source_files = ["main.cpp", "monocypher.c", "monocypher-ed25519.c"]
-    
+    source_files = [
+        "wasm_entry.cpp",
+        "LottoEngine.cpp",
+        "LottoCombinator.cpp",
+        "monocypher.c",
+        "monocypher-ed25519.c"
+    ]
     settings = [
         "-O3",
         f'-DSEC_KEY=\"{sec_key}\"',
-        "-s EXPORTED_FUNCTIONS=\"['_main','_start_simulation','_malloc','_free']\"",
+        "-s EXPORTED_FUNCTIONS=\"['_main','_start_simulation','_run_pm1_simulation','_malloc','_free']\"",
         "-s EXPORTED_RUNTIME_METHODS=\"['ccall','cwrap','HEAP32']\"",
         "-s ALLOW_MEMORY_GROWTH=1",
         "-s MODULARIZE=1",

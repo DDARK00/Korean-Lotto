@@ -20,6 +20,7 @@ def main():
     # 업데이트가 발생하면 True를 반환
     print('\nStep 1: Updating JSON from API...')
     status = update_lotto_data()
+    status=0
     
     if status != 0: # SUCCESS가 아니면 종료
         print('새로 추가된 데이터가 없으므로 빌드 파이프라인을 종료합니다.')
@@ -42,7 +43,7 @@ def main():
     # 3. Emscripten 빌드 등 CI/CD 작업
     print('\nStep 3: Data preparation complete. Ready for Emscripten build.')  
 
-    # 2. WASM 빌드 실행
+    # 4. WASM 빌드 실행
     is_build = run_wasm_build()
     if is_build:
         print('-> Step 3: 빌드 및 .js .wasm 생성 성공.')

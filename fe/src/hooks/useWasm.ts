@@ -6,13 +6,29 @@ import createModule, { WasmEngineModule } from '../wasm/engine.js';
 
 type WasmStatus = 'loading' | 'ready' | 'error'
 
+// WASM 평행우주 시뮬레이션 결과 인터페이스 (44바이트 패킹 구조체 대응)
+export interface UniverseSimulationResult {
+  totalCombinations: number
+  rank1Count: number
+  rank2Count: number
+  rank3Count: number
+  rank4Count: number
+  rank5Count: number
+  maxPrize: bigint
+  bestBitset: bigint
+  bestEpisode: number,
+  bestCombination: number[] // bitset -> comb
+}
+
 interface UseWasmReturn {
   status: WasmStatus
   error: string | null
   checkNumbers: (numbers: number[]) => Promise<CheckResult | null>
+  runUniverseSimulation: (numbers: number[]) => Promise<UniverseSimulationResult | null>
   _rawWasmContext: {
     mod: WasmEngineModule | null
     wasmFn: ((userBitset: bigint, outPtr: number) => number) | null
+    runPm1Fn: ((inPtr: number, outPtr: number) => number) | null
   }
 }
 
@@ -36,6 +52,20 @@ struct MatchResult {
     uint8_t has_bonus;   // 보너스 여부 (1 or 0)
     uint16_t rank;       // 등수 (1~5)
 };
+
+//  ±1 평행우주 시뮬레이션 집계 결과 (총 44바이트)
+struct UniverseResult {
+    uint32_t total_combinations; // offset 0  (4바이트) - 검증된 전체 조합 수 (최대 729)
+    uint32_t rank1_count;        // offset 4  (4바이트) - 1등 적중 횟수
+    uint32_t rank2_count;        // offset 8  (4바이트) - 2등 적중 횟수
+    uint32_t rank3_count;        // offset 12 (4바이트) - 3등 적중 횟수
+    uint32_t rank4_count;        // offset 16 (4바이트) - 4등 적중 횟수
+    uint32_t rank5_count;        // offset 20 (4바이트) - 5등 적중 횟수
+    uint64_t max_prize;          // offset 24 (8바이트) - 시뮬레이션 내 최고 단일 당첨금 (원)
+    uint64_t best_bitset;        // offset 32 (8바이트) - 최고 당첨금을 기록한 64비트 비트셋
+    uint32_t best_episode;       // offset 40 (4바이트) - 최고 당첨금이 나온 회차
+};
+
 #pragma pack(pop)
 
 */
@@ -132,7 +162,7 @@ export async function computeJS(userNumbers: number[]): Promise<CheckResult> {
 }
 
 /* =========================
- * WASM ENGINE (Optimized)
+ * WASM ENGINE (Single-Bitset Simulation)
  * ========================= */
 export async function computeWASM(
   mod: WasmEngineModule,
@@ -255,15 +285,86 @@ export async function computeWASM(
   }
 }
 
+/* =========================================================
+ * WASM-ONLY ENGINE (PM1 Universe Simulation)
+ * ========================================================= */
+export async function computeUniverseWASM(
+  mod: WasmEngineModule,
+  runPm1Fn: (inPtr: number, outPtr: number) => number,
+  userNumbers: number[]
+): Promise<UniverseSimulationResult | null> {
+  // 1. 입력 번호 6개 오름차순 정렬 보장
+  const sortedNumbers = [...userNumbers].sort((a, b) => a - b)
+
+  // 2. 포인터 메모리 할당 (입력 int[6] = 24바이트, 출력 UniverseResult = 44바이트)
+  const inPtr = mod._malloc(6 * 4)
+  const outPtr = mod._malloc(44)
+
+  try {
+    // 3. HEAP32 메모리에 정렬된 입력 번호 세팅 (인덱스 = ByteOffset / 4)
+    mod.HEAP32.set(sortedNumbers, inPtr / 4)
+
+    // 4. C-Binding run_pm1_simulation 실행
+    const resCode = runPm1Fn(inPtr, outPtr)
+    if (resCode !== 0) {
+      throw new Error(`WASM 평행우주 시뮬레이션 연산 실패: ${resCode}`)
+    }
+
+    // 5. WASM ArrayBuffer 참조
+    const rawBuffer =
+      (mod.HEAPU8 && mod.HEAPU8.buffer) ||
+      (mod.HEAP32 && mod.HEAP32.buffer) ||
+      (mod as any).buffer ||
+      (mod as any).asm?.memory?.buffer
+
+    if (!rawBuffer || !(rawBuffer instanceof ArrayBuffer)) {
+      throw new Error("WASM 메모리 버퍼를 찾을 수 없습니다.")
+    }
+
+    const view = new DataView(rawBuffer)
+
+    //  * 64비트 BigInt 비트셋을 로또 번호 배열(1~45)로 복원
+    function bitsetToNumbers(bitset: bigint): number[] {
+      const numbers: number[] = [];
+
+      for (let i = 1; i <= 45; i++) {
+        // (i - 1)번째 비트가 1(SET)인지 확인
+        if ((bitset & (1n << BigInt(i - 1))) !== 0n) {
+          numbers.push(i);
+        }
+      }
+      return numbers;
+    }
+
+    // 6. DataView 44바이트 오프셋 개별 파싱 (Little-Endian)
+    return {
+      totalCombinations: view.getUint32(outPtr, true),        // offset 0 (uint32)
+      rank1Count: view.getUint32(outPtr + 4, true),           // offset 4 (uint32)
+      rank2Count: view.getUint32(outPtr + 8, true),           // offset 8 (uint32)
+      rank3Count: view.getUint32(outPtr + 12, true),          // offset 12 (uint32)
+      rank4Count: view.getUint32(outPtr + 16, true),          // offset 16 (uint32)
+      rank5Count: view.getUint32(outPtr + 20, true),          // offset 20 (uint32)
+      maxPrize: view.getBigUint64(outPtr + 24, true),         // offset 24 (uint64)
+      bestBitset: view.getBigUint64(outPtr + 32, true),       // offset 32 (uint64)
+      bestEpisode: view.getUint32(outPtr + 40, true),        // offset 40 (uint32)
+      bestCombination: bitsetToNumbers(view.getBigUint64(outPtr + 32, true))
+    }
+  } finally {
+    mod._free(inPtr)
+    mod._free(outPtr)
+  }
+}
+
 /* =========================
  * MAIN CUSTOM HOOK
  * ========================= */
 export function useWasm(): UseWasmReturn {
   const [status, setStatus] = useState<WasmStatus>('loading')
-  const [error, _] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   const moduleRef = useRef<WasmEngineModule | null>(null)
   const startSimulationRef = useRef<((userBitset: bigint, outPtr: number) => number) | null>(null)
+  const runPm1SimulationRef = useRef<((inPtr: number, outPtr: number) => number) | null>(null)
   const statusRef = useRef<WasmStatus>('loading')
 
   useEffect(() => {
@@ -303,12 +404,18 @@ export function useWasm(): UseWasmReturn {
           'number',            // 리턴 타입: found_count (int)
           ['bigint', 'number']  // 인자 타입: [user_bitset(uint64_t), out_results(포인터)]
         )
+        runPm1SimulationRef.current = mod.cwrap(
+          'run_pm1_simulation',
+          'number',
+          ['number', 'number']
+        )
 
         setStatus('ready')
-      } catch (err) {
+      } catch (err: any) {
         console.error('WASM 모듈 로드 실패, JS 모드로 자동 대체됩니다:', err)
         if (isMounted) {
           clearTimeout(timer)
+          setError(err?.message || 'WASM 모듈 로드 실패')
           setStatus('error') // 에러로 Fallback 구동 환경 제공
         }
       }
@@ -348,8 +455,31 @@ export function useWasm(): UseWasmReturn {
     [] // status 종속성을 제거하여 불필요한 함수 재생성 억제 및 안정성 확보
   )
 
+  /* ±1 평행우주 대조 (WASM 전용: 로딩 미완료/에러 시 null 반환) */
+  const runUniverseSimulation = useCallback(
+    async (numbers: number[]): Promise<UniverseSimulationResult | null> => {
+      const mod = moduleRef.current
+      const runPm1Fn = runPm1SimulationRef.current
+
+      if (statusRef.current === 'ready' && mod && runPm1Fn) {
+        return await computeUniverseWASM(mod, runPm1Fn, numbers)
+      }
+
+      console.warn('⚡ [WASM 전용] WASM 엔진이 준비되지 않아 평행우주 연산을 건너뜁니다.')
+      return null
+    },
+    []
+  )
+
   return {
-    status, error, checkNumbers,
-    _rawWasmContext: moduleRef.current && startSimulationRef.current ? { mod: moduleRef.current, wasmFn: startSimulationRef.current } : { mod: null, wasmFn: null }
+    status,
+    error,
+    checkNumbers,
+    runUniverseSimulation,
+    _rawWasmContext: {
+      mod: moduleRef.current,
+      wasmFn: startSimulationRef.current,
+      runPm1Fn: runPm1SimulationRef.current,
+    }
   }
 }
