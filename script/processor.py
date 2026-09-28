@@ -1,6 +1,5 @@
 import struct
 import os
-from datetime import datetime
 from nacl.signing import SigningKey
 from nacl.encoding import RawEncoder
 from config import HEADER_PATH
@@ -115,7 +114,8 @@ def generate_wasm_header():
 #include <stdint.h>
 
 /*
- * 자동 생성된 로또 데이터 헤더 (생성일: {datetime.now().strftime('%Y-%m-%d %H:%M')})
+ * 자동 생성된 로또 데이터 헤더 (최신 회차: {max(item['ltEpsd'] for item in history)}회)
+ * 생성 시각은 넣지 않음: 같은 데이터 → 같은 헤더여야 CI의 git diff가 '변경 여부'를 정확히 판단함
  * 구조: [Bitset(8B) | 1등금(8B) | 2등금(8B) | 3등금(8B)] = 회차당 32바이트
  * 비트셋 상세: 0-44(번호), 45-51(보너스), 52-63(회차)
  */

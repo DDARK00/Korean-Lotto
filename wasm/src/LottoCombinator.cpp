@@ -31,7 +31,7 @@ std::vector<uint64_t> LottoCombinator::generate_pm1_bitsets(const int user_numbe
     std::vector<std::vector<int>> candidates(6);
     for (int i = 0; i < 6; ++i) {
         std::set<int> unique_nums;
-        int base = user_numbers[i];
+        int base = sorted_nums[i]; // 오름차순이어야 generate_combinations 의 num > last_picked 가 유효
         
         // 1~45 범위 내에서 -1, 0, +1 추출
         if (base - 1 >= 1)  unique_nums.insert(base - 1);

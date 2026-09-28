@@ -17,12 +17,12 @@ function getRankText(rank: number | null): string {
 }
 
 function getRankColorClass(rank: number | null): string {
-  if (rank === 1) return 'bg-gradient-to-r from-yellow-400 to-yellow-500 text-gray-900'
-  if (rank === 2) return 'bg-gradient-to-r from-gray-300 to-gray-400 text-gray-900'
-  if (rank === 3) return 'bg-gradient-to-r from-orange-300 to-orange-400 text-gray-900'
-  if (rank === 4) return 'bg-blue-500 text-white'
-  if (rank === 5) return 'bg-green-500 text-white'
-  return 'bg-gray-200 text-gray-600'
+  if (rank === 1) return 'bg-gradient-to-r from-rank-1 to-rank-1-end text-rank-1-fg'
+  if (rank === 2) return 'bg-gradient-to-r from-rank-2 to-rank-2-end text-rank-2-fg'
+  if (rank === 3) return 'bg-gradient-to-r from-rank-3 to-rank-3-end text-rank-3-fg'
+  if (rank === 4) return 'bg-rank-4 text-rank-4-fg'
+  if (rank === 5) return 'bg-rank-5 text-rank-5-fg'
+  return 'bg-rank-none text-rank-none-fg'
 }
 
 
@@ -47,12 +47,12 @@ export function ResultCard({ result, userNumbers }: ResultCardProps) {
       break;
   }
   return (
-    <div className="bg-white rounded-xl shadow-md p-4 hover:shadow-lg transition-shadow">
+    <article className="bg-surface border border-line-card rounded-xl shadow-md p-3 sm:p-4 hover:shadow-lg transition-shadow">
       <div className="flex items-center justify-between mb-3">
         <div>
-          <span className="text-lg font-bold text-gray-800">{result.round}회</span>
+          <h3 className="inline text-lg font-bold text-fg">{result.round}회</h3>
           {result.rank && result.rank <= 3 && (
-            <span className="text-xs text-gray-500 ml-2">
+            <span className="text-xs text-fg-muted ml-2">
               (1등 {formatPrize(result.prize1st)})
             </span>
           )}
@@ -62,15 +62,15 @@ export function ResultCard({ result, userNumbers }: ResultCardProps) {
         </span>
       </div>
       <div className='flex'>
-        <span className='ml-auto px-3'>
+        <span className='ml-auto px-3 text-fg'>
           {formatPrize(winningPrize)}
         </span>
 
       </div>
       {/* 당첨 번호 */}
       <div className="mb-3">
-        <p className="text-xs text-gray-500 mb-2">당첨 번호</p>
-        <div className="flex items-center gap-2">
+        <p className="text-xs text-fg-muted mb-2">당첨 번호</p>
+        <div className="flex items-center gap-1.5 sm:gap-2">
           {result.numbers.map((num) => (
             <LottoBall
               key={num}
@@ -79,7 +79,7 @@ export function ResultCard({ result, userNumbers }: ResultCardProps) {
               isMatched={userNumbers.includes(num)}
             />
           ))}
-          <span className="text-gray-400 mx-1">+</span>
+          <span className="text-fg-muted mx-0.5 sm:mx-1" aria-label="보너스">+</span>
           <LottoBall
             number={result.bonusNumber}
             size="sm"
@@ -90,12 +90,12 @@ export function ResultCard({ result, userNumbers }: ResultCardProps) {
       </div>
 
       {/* 일치 정보 */}
-      <div className="text-sm text-gray-600">
-        <span className="font-medium text-blue-600">{result.matchCount}개 일치</span>
+      <div className="text-sm text-fg-muted">
+        <span className="font-medium text-accent">{result.matchCount}개 일치</span>
         {result.hasBonusMatch && (
-          <span className="ml-2 text-purple-600">(보너스 일치)</span>
+          <span className="ml-2 text-bonus">(보너스 일치)</span>
         )}
       </div>
-    </div>
+    </article>
   )
 }

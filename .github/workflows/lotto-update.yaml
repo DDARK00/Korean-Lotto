@@ -9,10 +9,31 @@ name: Weekly Lotto Update & WASM Build
 # FAILURE, TIMEOUT, NO_DATA = 1(retry)
 
 on:
-    schedule:
-      - cron: '0 12 * * 6' # 매주 토요일 21:00 KST
-      - cron: '0 0 * * 0'  # 일요일 아침 9시
-    workflow_dispatch:
+  schedule:
+    - cron: "0 12 * * 6" # 매주 토요일 21:00 KST
+    - cron: "0 0 * * 0" # 일요일 아침 9시
+  workflow_dispatch:
+    inputs:
+      force_build:
+        description: "새 회차가 없어도 기존 데이터로 WASM 빌드 + 배포"
+        type: boolean
+        default: true
+  # 엔진/파이프라인 코드가 바뀌면 WASM을 다시 빌드해야 하므로 여기서 처리
+  # (deploy.yaml 은 FE만 빌드하므로 이 경로들은 paths-ignore 로 넘겨받음)
+  # 봇(GITHUB_TOKEN)의 push 는 워크플로를 트리거하지 않아 루프 없음
+  push:
+    branches:
+      - main
+    paths:
+      - "wasm/src/**"
+      - "!wasm/src/lotto_data.h"
+      - "script/**"
+      - "requirements.txt"
+
+# 두 실행이 동시에 main 에 push 하지 않도록 직렬화
+concurrency:
+  group: "lotto-update"
+  cancel-in-progress: false
 
 jobs:
   update-and-build:
@@ -31,15 +52,15 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
-          cache: 'pip'
+          python-version: "3.11"
+          cache: "pip"
 
       # 3. Emscripten (emsdk) 설정
       - name: Set up Emscripten
         uses: emscripten-core/setup-emsdk@v16
         with:
-          version: '5.0.7' 
-          actions-cache-folder: 'emsdk-cache'
+          version: "5.0.7"
+          actions-cache-folder: "emsdk-cache"
 
       # 4. 통합 파이프라인 실행 (실패 시 5분 뒤 자동 재시도)
       - name: Run Total Pipeline with Retry
@@ -57,6 +78,8 @@ jobs:
         env:
           LOTTO_PRIVATE_KEY: ${{ secrets.LOTTO_PRIVATE_KEY }}
           SEC_KEY: ${{ secrets.SEC_KEY }} # 파이썬 내부 builder.py가 쓸 수 있게 주입
+          # 스케줄 실행은 새 회차가 있을 때만 빌드, 코드 push / 수동 실행(force_build)은 항상 빌드
+          FORCE_BUILD: ${{ (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.force_build)) && '1' || '0' }}
 
       # 5. 변경된 파일(JSON, WASM 등)을 Git에 커밋 및 푸시
       - name: Commit and Push changes
@@ -65,7 +88,7 @@ jobs:
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          
+
           git add data/ fe/src/wasm/ fe/public/data/
           git add -f wasm/src/lotto_data.h
           git add -f fe/public/data/lotto_history.json
@@ -81,10 +104,10 @@ jobs:
             echo "changed=false" >> "$GITHUB_OUTPUT"
           fi
 
-  # 6. 데이터가 실제로 갱신된 경우에만 GitHub Pages 재배포
+  # 6. 커밋이 발생했거나(데이터/엔진 변경) 수동 실행인 경우 GitHub Pages 재배포
   deploy:
     needs: update-and-build
-    if: needs.update-and-build.outputs.changed == 'true'
+    if: needs.update-and-build.outputs.changed == 'true' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/deploy.yaml
     permissions:
       contents: read

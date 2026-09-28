@@ -3,33 +3,79 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>로또 당첨 확인기</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            colors: {
-              lotto: {
-                yellow: '#FBC400',
-                blue: '#69C8F2',
-                red: '#FF7272',
-                gray: '#AAAAAA',
-                green: '#B0D840',
-              },
-            },
-          },
-        },
+    <title>로또 당첨 확인기 | 내 번호로 역대 당첨 결과 확인</title>
+    <meta
+      name="description"
+      content="내가 고른 로또 번호 6개를 1회부터 최신 회차까지 역대 당첨 번호와 대조해 등수와 당첨금을 확인하고, 번호를 한 칸씩 옮긴 옆 번호 조합과도 비교해 보세요."
+    />
+    <!-- 절대 URL이 필요한 항목은 .env.production 의 VITE_SITE_URL 로 치환 (끝에 / 포함) -->
+    <link rel="canonical" href="%VITE_SITE_URL%" />
+    <meta name="theme-color" content="#eff6ff" />
+
+    <!-- 파비콘 (public/ 기준, 빌드 시 base 경로가 자동으로 붙음) -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+    <!-- 오픈그래프 (카카오톡/페이스북/슬랙 등 링크 미리보기) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="로또 당첨 확인기" />
+    <meta property="og:locale" content="ko_KR" />
+    <meta property="og:url" content="%VITE_SITE_URL%" />
+    <meta property="og:title" content="로또 당첨 확인기 - 만약 이 번호를 계속 샀다면?" />
+    <meta property="og:description" content="내 번호 6개를 역대 로또 당첨 번호와 전부 대조해 보고, 한 칸씩 옮긴 옆 번호였다면 얼마였을지도 확인해 보세요." />
+    <meta property="og:image" content="%VITE_SITE_URL%og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="로또 당첨 확인기 - 만약 이 번호를 계속 샀다면?" />
+
+    <!-- 트위터(X) 카드 -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="로또 당첨 확인기 - 만약 이 번호를 계속 샀다면?" />
+    <meta name="twitter:description" content="내 번호 6개를 역대 로또 당첨 번호와 전부 대조해 보세요." />
+    <meta name="twitter:image" content="%VITE_SITE_URL%og-image.png" />
+
+    <!-- 구조화 데이터 (검색 결과 노출용) -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "로또 당첨 확인기",
+        "url": "%VITE_SITE_URL%",
+        "description": "내가 고른 로또 번호를 역대 당첨 번호와 대조해 등수와 당첨금을 확인하는 웹 앱",
+        "applicationCategory": "UtilitiesApplication",
+        "operatingSystem": "All",
+        "inLanguage": "ko",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "KRW" }
       }
     </script>
-    <style>
-      @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap');
-      body {
-        font-family: 'Noto Sans KR', sans-serif;
-      }
-    </style>
+
+    <!-- 폰트 (@import 대신 link 로 병렬 로드) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap"
+    />
+
+    <!-- 첫 페인트 전에 테마 적용 (깜빡임 방지) - 키는 src/hooks/useTheme.ts 와 동일 -->
+    <script>
+      (function () {
+        var theme = 'light'
+        try {
+          var saved = localStorage.getItem('lotto-theme')
+          if (saved === 'light' || saved === 'contrast') theme = saved
+          else if (window.matchMedia('(prefers-contrast: more)').matches) theme = 'contrast'
+        } catch (e) {}
+        document.documentElement.dataset.theme = theme
+      })()
+    </script>
   </head>
-  <body class="bg-gray-50 min-h-screen">
+  <body class="bg-page-from min-h-screen">
+    <noscript>
+      <p style="padding: 16px; text-align: center">
+        로또 당첨 확인기는 JavaScript가 필요합니다. 브라우저 설정에서 JavaScript를 켜 주세요.
+      </p>
+    </noscript>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
