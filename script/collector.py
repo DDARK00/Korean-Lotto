@@ -52,16 +52,12 @@ def update_lotto_data():
 
 # 실제 최신회차 로또 라운드
 def find_latest_lotto_round():
-    from datetime import datetime, timedelta, timezone
-
-    KST = timezone(timedelta(hours=9))
-
-    BASE_ROUND = 1222
-    BASE_TIME = datetime(2026, 5, 2, 20, 35, tzinfo=KST)
+    from datetime import datetime
+    from config import KST, BASE_ROUND, BASE_DRAW_TIME
 
     def get_lotto_round(dt=None):
         dt = (dt or datetime.now(KST)).astimezone(KST)
-        return BASE_ROUND + ((dt - BASE_TIME).days // 7)
+        return BASE_ROUND + ((dt - BASE_DRAW_TIME).days // 7)
 
     result = get_lotto_round()
     return result
