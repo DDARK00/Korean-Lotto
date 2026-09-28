@@ -160,25 +160,58 @@ function useWasmTest() {
     return { runTest, isTesting };
 }
 
-// 2. 메인 테스트 컴포넌트
-export default function WasmTester({ selectedNumbers }: { selectedNumbers: number[] }) {
+// 2. 검증 실행 버튼 (전용 WASM 인스턴스 보유)
+//    패널이 열릴 때만 마운트 → 일반 방문자는 WASM을 한 번만 로드하고,
+//    테스터는 열 때마다 새 인스턴스로 콜드 스타트 측정 (닫으면 인스턴스 해제)
+function TestRunButton({ selectedNumbers, onResult }: {
+    selectedNumbers: number[]
+    onResult: (numbers: number[], result: any) => void
+}) {
     const { runTest, isTesting } = useWasmTest(); // 내부 훅 사용
-    const [testNumbers, setTestNumbers] = useState<number[]>([])
-    const [testResult, setTestResult] = useState<any>(null);
-    const { _rawWasmContext } = useWasm()
+    const { status, _rawWasmContext } = useWasm()
     const { mod, wasmFn, runPm1Fn } = _rawWasmContext
-    const [isOpen, setIsOpen] = useState(false);
-
-    if (!mod || !wasmFn || !runPm1Fn) {
-        return (<p>wasm loading error</p>)
-    }
+    const isReady = status === 'ready' && !!mod && !!wasmFn && !!runPm1Fn
 
     const testFn = async (numbers: number[]) => {
+        if (!mod || !wasmFn || !runPm1Fn) return
         const result = await runTest(numbers, mod, wasmFn, runPm1Fn)
-        if (result.success) {
-            setTestNumbers(numbers)
-            setTestResult(result)
-        }
+        if (result.success) onResult(numbers, result)
+    }
+
+    return (
+        <button
+            disabled={!isReady || isTesting || selectedNumbers.length !== 6}
+            onClick={() => testFn(selectedNumbers)}
+            className="w-full bg-accent hover:bg-accent-hover disabled:bg-control text-accent-fg disabled:text-fg-muted py-2 px-4 rounded-xl text-xs font-bold transition-colors shadow-sm cursor-pointer disabled:cursor-not-allowed"
+        >
+            {status === 'loading' ? (
+                'WASM 엔진 로드 중...'
+            ) : status === 'error' ? (
+                'WASM 로드 실패 (검증 불가)'
+            ) : isTesting ? (
+                <span className="flex items-center justify-center gap-2">
+                    <svg className="animate-spin h-3 w-3 text-gray-400" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                    1,200+ 회차 전수 조사 중...
+                </span>
+            ) : (
+                '교차 검증 실행 (Cross-Validate)'
+            )}
+        </button>
+    )
+}
+
+// 3. 메인 테스트 컴포넌트
+export default function WasmTester({ selectedNumbers }: { selectedNumbers: number[] }) {
+    const [testNumbers, setTestNumbers] = useState<number[]>([])
+    const [testResult, setTestResult] = useState<any>(null);
+    const [isOpen, setIsOpen] = useState(false);
+
+    const handleResult = (numbers: number[], result: any) => {
+        setTestNumbers(numbers)
+        setTestResult(result)
     }
 
     return (
@@ -216,23 +249,7 @@ export default function WasmTester({ selectedNumbers }: { selectedNumbers: numbe
                         <hr className="border-line" />
 
                         {/* 검증 실행 버튼 */}
-                        <button
-                            disabled={isTesting || selectedNumbers.length !== 6}
-                            onClick={() => testFn(selectedNumbers)}
-                            className="w-full bg-accent hover:bg-accent-hover disabled:bg-control text-accent-fg disabled:text-fg-muted py-2 px-4 rounded-xl text-xs font-bold transition-colors shadow-sm cursor-pointer disabled:cursor-not-allowed"
-                        >
-                            {isTesting ? (
-                                <span className="flex items-center justify-center gap-2">
-                                    <svg className="animate-spin h-3 w-3 text-gray-400" viewBox="0 0 24 24">
-                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                                    </svg>
-                                    1,200+ 회차 전수 조사 중...
-                                </span>
-                            ) : (
-                                '교차 검증 실행 (Cross-Validate)'
-                            )}
-                        </button>
+                        <TestRunButton selectedNumbers={selectedNumbers} onResult={handleResult} />
 
                         {/* 결과창 */}
                         {testResult ? (
