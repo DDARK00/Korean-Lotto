@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
-import { useWasm, type UniverseSimulationResult } from '@hooks/useWasm'
+import { useWasm } from '@hooks/useWasm'
+import type { UniverseSimulationResult } from '@lib/types'
 import { NumberInput, ResultSummary, ResultCard, LottoBall, UniverseSummary } from '@components/common/lotto'
 import type { CheckResult } from '@lib/types'
 import WasmTester from '@/hooks/WasmTester'

@@ -90,3 +90,17 @@ export function formatPrize(amount: number): string {
   }
   return `${amount.toLocaleString()}원`
 }
+
+// WASM 평행우주 시뮬레이션 결과 인터페이스 (44바이트 패킹 구조체 대응)
+export interface UniverseSimulationResult {
+  totalCombinations: number
+  rank1Count: number
+  rank2Count: number
+  rank3Count: number
+  rank4Count: number
+  rank5Count: number
+  maxPrize: bigint
+  bestBitset: bigint
+  bestEpisode: number,
+  bestCombination: number[] // bitset -> comb
+}
