@@ -1,6 +1,6 @@
 import { LottoBall } from './LottoBall'
 import { formatPrize, type CheckResult } from '@lib/types'
-import type { UniverseSimulationResult } from '@hooks/useWasm'
+import type { UniverseSimulationResult } from '@lib/types'
 
 interface UniverseSummaryProps {
   result: CheckResult

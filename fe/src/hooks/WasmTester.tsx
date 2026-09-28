@@ -1,6 +1,9 @@
 import { useState } from 'react';
-import { computeJS, computeWASM, computeUniverseJS, computeUniverseWASM, useWasm } from './useWasm';
-import type { UniverseSimulationResult } from './useWasm';
+import { useWasm } from './useWasm';
+import { computeUniverseJS } from './wasmBench';
+import { computeJS } from '@lib/engine/js';
+import { computeWASM, computeUniverseWASM } from '@lib/engine/wasm';
+import type { UniverseSimulationResult } from '@lib/types';
 import { WasmEngineModule } from '@/wasm/engine';
 
 // ±1 평행우주 결과 비교 (bigint 필드 포함 전 필드 일치 여부)
