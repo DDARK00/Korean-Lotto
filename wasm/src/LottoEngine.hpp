@@ -13,6 +13,9 @@ private:
 
     uint16_t calculate_rank(uint8_t match, bool bonus);
 
+    // 게이트 검사 없는 순수 등수 계산 (게이트를 통과한 루프 내부 전용)
+    static uint16_t rank_of(uint8_t match, bool bonus);
+
 public:
     explicit LottoEngine(const std::string& key);
 

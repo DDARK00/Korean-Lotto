@@ -1,0 +1,103 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * 테마 토큰 (값은 "R G B" 채널)
+ * - :root            라이트 (기존 톤 유지, 보조 텍스트/뱃지 대비만 상향)
+ * - [data-theme=contrast]  고대비 (검정 배경 + 흰 글씨 + 노랑 강조)
+ * 새 컴포넌트는 gray-500 같은 원색 대신 여기 토큰(text-fg-muted 등)을 사용
+ */
+:root {
+  color-scheme: light;
+
+  --c-page-from: 239 246 255;     /* blue-50 */
+  --c-page-to: 224 231 255;       /* indigo-100 */
+  --c-surface: 255 255 255;
+  --c-surface-muted: 249 250 251; /* gray-50 */
+  --c-control: 243 244 246;       /* gray-100 */
+  --c-control-hover: 229 231 235; /* gray-200 */
+  --c-line: 229 231 235;
+  --c-line-card: 255 255 255;     /* 라이트에서는 카드 테두리 안 보이게 (그림자로 구분) */
+  --c-line-control: 243 244 246;
+
+  --c-fg: 31 41 55;               /* gray-800 */
+  --c-fg-soft: 55 65 81;          /* gray-700 */
+  --c-fg-muted: 75 85 99;         /* gray-600 (기존 gray-400/500 에서 상향) */
+
+  --c-accent: 37 99 235;          /* blue-600 */
+  --c-accent-hover: 29 78 216;    /* blue-700 */
+  --c-accent-fg: 255 255 255;
+
+  --c-danger: 220 38 38;
+  --c-bonus: 147 51 234;
+  --c-up: 220 38 38;
+  --c-down: 37 99 235;
+  --c-match: 34 197 94;
+
+  --c-warn-bg: 254 252 232;
+  --c-warn-line: 254 240 138;
+  --c-warn-fg: 161 98 7;
+
+  --c-rank1: 250 204 21;   --c-rank1-end: 234 179 8;    --c-rank1-fg: 17 24 39;
+  --c-rank2: 209 213 219;  --c-rank2-end: 156 163 175;  --c-rank2-fg: 17 24 39;
+  --c-rank3: 253 186 116;  --c-rank3-end: 251 146 60;   --c-rank3-fg: 17 24 39;
+  --c-rank4: 37 99 235;    --c-rank4-end: 37 99 235;    --c-rank4-fg: 255 255 255;
+  --c-rank5: 21 128 61;    --c-rank5-end: 21 128 61;    --c-rank5-fg: 255 255 255;
+  --c-rank-none: 229 231 235; --c-rank-none-fg: 75 85 99;
+
+  /* 로또 공 글자: 밝은 공(노랑/초록)은 ink, 나머지는 ink-inv */
+  --c-ball-ink: 17 24 39;
+  --c-ball-ink-inv: 255 255 255;
+  --ball-shadow: 0 1px 2px rgb(0 0 0 / 0.45);
+}
+
+[data-theme='contrast'] {
+  color-scheme: dark;
+
+  --c-page-from: 0 0 0;
+  --c-page-to: 0 0 0;
+  --c-surface: 0 0 0;
+  --c-surface-muted: 20 20 20;
+  --c-control: 0 0 0;
+  --c-control-hover: 45 45 45;
+  --c-line: 160 160 160;
+  --c-line-card: 255 255 255;
+  --c-line-control: 255 255 255;
+
+  --c-fg: 255 255 255;
+  --c-fg-soft: 255 255 255;
+  --c-fg-muted: 230 230 230;
+
+  --c-accent: 255 212 0;
+  --c-accent-hover: 255 230 90;
+  --c-accent-fg: 0 0 0;
+
+  --c-danger: 255 120 120;
+  --c-bonus: 216 166 255;
+  --c-up: 255 140 140;
+  --c-down: 127 212 255;
+  --c-match: 255 255 255;
+
+  --c-warn-bg: 0 0 0;
+  --c-warn-line: 255 212 0;
+  --c-warn-fg: 255 212 0;
+
+  --c-rank1: 255 212 0;    --c-rank1-end: 255 212 0;    --c-rank1-fg: 0 0 0;
+  --c-rank2: 255 255 255;  --c-rank2-end: 255 255 255;  --c-rank2-fg: 0 0 0;
+  --c-rank3: 255 158 64;   --c-rank3-end: 255 158 64;   --c-rank3-fg: 0 0 0;
+  --c-rank4: 77 195 255;   --c-rank4-end: 77 195 255;   --c-rank4-fg: 0 0 0;
+  --c-rank5: 107 255 107;  --c-rank5-end: 107 255 107;  --c-rank5-fg: 0 0 0;
+  --c-rank-none: 45 45 45; --c-rank-none-fg: 255 255 255;
+
+  /* 공 색상은 공식 색 유지, 글자를 전부 검정으로 바꿔 대비 확보 (검정 배경 위에서는 공 자체가 밝게 떠 보임) */
+  --c-ball-ink: 0 0 0;
+  --c-ball-ink-inv: 0 0 0;
+  --ball-shadow: none;
+}
+
+@layer components {
+  .ball-text-shadow {
+    text-shadow: var(--ball-shadow);
+  }
+}
