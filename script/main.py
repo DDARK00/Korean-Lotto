@@ -20,9 +20,14 @@ def main():
     # 업데이트가 발생하면 True를 반환
     print('\nStep 1: Updating JSON from API...')
     status = update_lotto_data()
-    status=0
-    
-    if status != 0: # SUCCESS가 아니면 종료
+
+    # FORCE_BUILD=1: 새 회차가 없어도(SKIPPED) 기존 데이터로 빌드 진행
+    # (수동 실행 / 엔진 코드 push 시 워크플로가 주입. 수집 실패 코드는 그대로 존중)
+    force_build = os.getenv('FORCE_BUILD') == '1'
+
+    if status == 10 and force_build:
+        print('새 회차는 없지만 FORCE_BUILD=1 이므로 기존 데이터로 빌드를 진행합니다.')
+    elif status != 0: # SUCCESS가 아니면 종료
         print('새로 추가된 데이터가 없으므로 빌드 파이프라인을 종료합니다.')
         #  변경 사항 없으므로 여기서 Actions 종료
         if status == 10: # Skipped 정상 종료

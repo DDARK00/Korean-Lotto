@@ -4,14 +4,20 @@ on:
   workflow_call:
     inputs:
       ref:
-        description: 'Git ref to checkout'
+        description: "Git ref to checkout"
         required: false
-        default: 'main'
+        default: "main"
         type: string
   workflow_dispatch:
   push:
     branches:
       - main
+    # 엔진/파이프라인 변경은 WASM 재빌드가 필요하므로 lotto-update.yaml 이 빌드 후 이 워크플로를 호출
+    # (FE와 엔진을 한 번에 push 하면 둘 다 돌지만, 더 늦게 끝나는 lotto-update 쪽 배포가 최종본이 됨)
+    paths-ignore:
+      - "wasm/src/**"
+      - "script/**"
+      - "requirements.txt"
 
 permissions:
   contents: read
@@ -19,7 +25,7 @@ permissions:
   id-token: write
 
 concurrency:
-  group: 'pages'
+  group: "pages"
   cancel-in-progress: true
 
 jobs:
@@ -28,7 +34,7 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
-    
+
     defaults:
       run:
         working-directory: fe
@@ -49,8 +55,8 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 24
-          cache: 'pnpm'
-          cache-dependency-path: './fe/pnpm-lock.yaml'
+          cache: "pnpm"
+          cache-dependency-path: "./fe/pnpm-lock.yaml"
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -61,7 +67,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: './fe/dist'
+          path: "./fe/dist"
 
       - name: Deploy to GitHub Pages
         id: deployment
