@@ -1,83 +1,79 @@
-🏗️ Lotto Wasm Project Blueprint  
-본 프로젝트는 GitHub Actions를 통한 데이터 자동 수집 파이프라인과 WebAssembly(Wasm) 기반의 고속 연산 엔진을 결합한 차세대 로또 분석 플랫폼입니다.
+# 로또 당첨 확인기
 
-[Github Pages](https://ddark00.github.io/Korean-Lotto)
+> **만약 이 번호를 계속 샀다면?**
+> 내 번호 6개를 1회부터 최신 회차까지 전부 대조해 보는 웹 서비스
 
-📁 Project Directory Structure
-```Plaintext
-root/
-├── .github/
-│   └── workflows/
-│       └── update-lotto.yml      # GitHub Actions 워크플로우 정의
-├── config/
-│   └── api_info.json             # API 엔드포인트 및 설정 상수
-├── data/
-│   └── history.json              # [Source] 원본 로또 당첨 데이터 (JSON)
-├── script/                       # [Python] 데이터 가공 및 보안 파이프라인
-│   ├── main.py                   # 공정 통합 관리 및 실행 (Manager)
-│   ├── collector.py              # API 수집 및 JSON 증분 업데이트
-│   ├── processor.py              # 비트셋 변환 및 C++ 헤더 생성
-│   └── signer.py                 # Secrets 기반 Ed25519 서명 로직
-├── wasm/                         # [C++] 고속 연산 엔진
-│   ├── src/
-│   │   ├── main.cpp              # 로또 비교 및 당첨 판별 로직
-│   │   ├── monocypher.c          # 추가: 소스 파일 관리
-│   │   ├── monocypher.h
-│   │   └── lotto_data.h          # [Generated] 서명된 비트셋 데이터 헤더
-│   └── build/                    # 로컬 테스트용 빌드 폴더 (유지)접점 파일
-│       ├── engine.js             # 컴파일된 .wasm 및 .js 
-│       └── engine.wasm
-└── fe/                           # [Frontend] 사용자 인터페이스
-    └── react etc...
+**[사이트 바로가기](https://ddark00.github.io/Korean-Lotto)**
+
+번호를 고르면 역대 모든 회차의 당첨 결과를 한 번에 보여줍니다. 대조 연산은 C++로 작성해 WebAssembly로 컴파일한 엔진이 브라우저에서 처리하고, 당첨 데이터는 매주 GitHub Actions가 자동으로 수집합니다. 엔진은 데이터가 위변조되지 않았는지 서명으로 검증한 뒤에만 연산합니다.
+
+## 주요 기능
+
+- **역대 당첨 대조**: 1회~최신 회차 전체를 대조해 등수별 횟수, 누적 당첨금, 회차별 내역(등수 필터)을 보여줍니다.
+- **한 끗 차이**: 각 번호를 ±1씩 옮긴 조합(최대 3⁶ = 729개)을 전 회차와 대조해, "옆 번호였다면" 얼마였을지 보여줍니다. 계산량이 커서 WASM 엔진에서만 동작합니다.
+- **엔진 교차 검증 도구**: WASM 엔진과 JS 엔진의 결과가 100% 같은지 확인하고 속도를 비교합니다. (데스크톱, 우측 하단 🔬 버튼)
+- **JS 폴백**: WASM을 불러오지 못하면 같은 로직의 JS 엔진으로 기본 대조를 계속합니다.
+- 라이트/고대비 테마, 모바일 대응, 시맨틱 마크업, 오픈그래프(SNS 공유 미리보기)
+
+## 동작 구조
+
+```
+[GitHub Actions: 매주 토요일 추첨 후]
+  동행복권 API ─▶ collector.py  최신 회차 수집 → data/lotto_history.json
+                  processor.py  회차별 32바이트 비트셋으로 패킹 + Ed25519 서명 → lotto_data.h
+                  builder.py    Emscripten으로 C++ 엔진 빌드 → engine.js / engine.wasm
+               ─▶ 변경분 커밋 → GitHub Pages 배포
+
+[브라우저]
+  engine.wasm 로드 ─▶ 내장 공개키로 데이터 서명 검증 ─▶ 통과 시에만 연산
+                      실패/로드 불가 시 JS 엔진으로 폴백
 ```
 
-🛠️ Work Pipeline & Logic Flow
-1. Data Collection Phase (Python)
-  Incremental Update: 기존 history.json의 마지막 회차를 인식하여 최신 회차만 수집합니다.
+- **비트셋 대조**: 당첨 번호 6개를 `uint64_t` 하나의 비트로 표현하고, `AND` + `popcount`로 맞은 개수를 계산합니다.
+- **무결성 검증**: 서명용 개인키는 GitHub Secrets에만 있고, 엔진에는 공개키와 서명만 들어갑니다. 검증에 실패하면 엔진은 연산을 거부합니다.
+- 생성물(`lotto_data.h`, `engine.js`, `engine.wasm`)은 로컬에서 커밋하지 않고 CI에서만 생성합니다.
 
-- Politeness Strategy: 초기 대량 수집(1~1,200회)은 로컬에서 수행 후 커밋하며, 자동화 공정에서는 단일 회차를 수집하여 서버 부하를 최소화합니다.
+## 기술 스택
 
-2. Processing & Security Phase (Python)
-Bitset Compression: 6개의 번호를 uint64_t 정수의 비트 필드에 매핑하여 메모리 점유율을 줄이고 연산 속도를 극대화합니다.
+| 영역 | 사용 기술 |
+|---|---|
+| Frontend | React 19, TypeScript, Vite, Tailwind CSS |
+| Engine | C++ → WebAssembly (Emscripten), Monocypher (Ed25519) |
+| Pipeline | Python (requests, PyNaCl) |
+| CI/CD | GitHub Actions, GitHub Pages |
 
-- Cryptographic Signing: GitHub Secrets의 Private Key를 사용하여 비트셋 바이너리의 해시값을 Ed25519 방식으로 서명합니다.
+## 프로젝트 구조
 
-- Code Generation: Wasm 컴파일 단계에서 즉시 참조 가능한 정적 배열 형태의 lotto_data.h를 자동 생성합니다.
+```
+.
+├── .github/workflows/
+│   ├── lotto-update.yaml   # 주간 수집 → 헤더 생성 → WASM 빌드 → 커밋 → 배포
+│   └── deploy.yaml         # FE 빌드 및 GitHub Pages 배포
+├── script/                 # [Python] 데이터 파이프라인
+│   ├── main.py             # 파이프라인 진입점
+│   ├── collector.py        # API 수집 (최신 회차만 증분)
+│   ├── processor.py        # 비트셋 패킹 + 서명 → C++ 헤더 생성
+│   └── builder.py          # Emscripten 빌드
+├── data/                   # 원본 당첨 데이터 (JSON)
+├── wasm/src/               # [C++] 대조 엔진
+│   ├── LottoEngine.*       # 서명 검증 게이트 + 회차 대조 / 한 끗 차이 집계
+│   ├── LottoCombinator.*   # ±1 조합 생성
+│   ├── wasm_entry.cpp      # JS로 노출하는 C 바인딩
+│   └── monocypher*         # Ed25519 라이브러리 (vendored)
+└── fe/src/                 # [React] 화면
+    ├── pages/Checker/      # 메인 페이지
+    ├── components/         # 번호 입력, 결과 카드, 한 끗 차이 카드, 테마 토글
+    ├── hooks/              # useWasm (엔진 로드·호출), 교차 검증 도구
+    ├── lib/engine/         # JS 엔진 / WASM 호출부
+    └── wasm/               # CI가 생성한 engine.js / engine.wasm
+```
 
-3. Wasm Engine Build (C++)
-Integrity Check: 엔진 구동 시 내장된 Public Key로 데이터의 서명을 검증하여 위변조를 차단합니다.
+## 로컬 실행
 
-- High-Speed Matching: Bitwise AND 및 popcount 알고리즘을 사용하여 수천 회차의 대조 작업을 밀리초(ms) 단위로 처리합니다.
+```bash
+cd fe
+pnpm install
+pnpm dev
+```
 
-- Emscripten Build: 최적화된 C++ 로직을 웹 브라우저 호환 바이너리로 빌드합니다.
-
-4. Integration & UI (JS/HTML)
-Wasm Bridge: JS와 Wasm 간의 메모리 공유 및 함수 호출 인터페이스를 구성합니다.
-
-- Data Visualization: 가공된 JSON을 활용해 회차별 통계 및 상세 정보를 미려하게 시각화합니다.
-
-5. Automation (GitHub Actions)
-Scheduled Trigger: 매주 토요일 당첨 발표 직후 정기적으로 실행됩니다.
-
-- Auto-Commit: 업데이트된 데이터와 빌드된 바이너리를 리포지토리에 자동 푸시하여 최신 상태를 유지합니다.
-
-🔐 Security Policy
-Secrets Management: 서명용 개인키는 코드에 노출하지 않으며 오직 GitHub Secrets 환경 변수로만 주입받습니다.
-
-- Data Integrity: 데이터 위변조가 감지될 경우 Wasm 엔진은 연산을 거부하거나 무효화된 시그니처를 반환하여 신뢰성을 보장합니다.
-
-🚀 Step-by-Step Task Checklist  
-
-[x] Phase 1: 로컬에서 1회~현재 회차까지 history.json 초기 수집 및 저장소 구축
-
-[x] Phase 2: collector.py (JSON 갱신) 및 processor.py (비트셋 변환) 모듈 구현
-
-[x] Phase 3: signer.py (Ed25519 서명) 구현 및 main.py 통합 공정 조립
-
-[x] Phase 4: C++ Wasm 연산 로직 개발 및 서명 검증 엔진 구현
-
-[x] Phase 5: GitHub Actions YAML 작성 및 Secrets 환경 변수 설정
-
-[x] Phase 6: Frontend UI 개발 및 Wasm JS 브릿지 연결
-
-[x] Phase 7: 전체 파이프라인 통합 테스트 및 데이터 정합성 검증
+엔진을 다시 빌드하려면 Emscripten과 서명 키(`LOTTO_PRIVATE_KEY`, `SEC_KEY`)가 필요하므로, 엔진 변경은 `main`에 push해 CI로 빌드합니다. (`wasm/src`, `script` 변경 시 자동 재빌드·배포, Actions에서 수동 실행도 가능)
