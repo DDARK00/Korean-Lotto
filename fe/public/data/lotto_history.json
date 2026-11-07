@@ -19966,5 +19966,21 @@
         "rnk2WnAmt": 53122485,
         "rnk3WnNope": 3265,
         "rnk3WnAmt": 1480597
+    },
+    {
+        "ltEpsd": 1249,
+        "tm1WnNo": 2,
+        "tm2WnNo": 11,
+        "tm3WnNo": 16,
+        "tm4WnNo": 25,
+        "tm5WnNo": 34,
+        "tm6WnNo": 35,
+        "bnsWnNo": 14,
+        "rnk1WnNope": 14,
+        "rnk1WnAmt": 2025045509,
+        "rnk2WnNope": 93,
+        "rnk2WnAmt": 50807594,
+        "rnk3WnNope": 3550,
+        "rnk3WnAmt": 1331016
     }
 ]
